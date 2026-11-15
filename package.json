@@ -1,0 +1,17 @@
+{
+  "name": "knowverse",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Knowverse — a knowledge multiverse: universe navigator, Obsidian-style knowledge graphs and an AI documentation workspace.",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "index": "node scripts/build-index.mjs",
+    "seed": "node scripts/seed-placeholders.mjs && node scripts/build-index.mjs",
+    "vendor": "esbuild scripts/vendor-entry.mjs --bundle --format=esm --platform=browser --minify --outfile=vendor/anthropic-sdk.js"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "1.8.0",
+    "esbuild": "0.28.2"
+  }
+}

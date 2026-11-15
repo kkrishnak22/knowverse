@@ -1,0 +1,51 @@
+/* Multiverse home page. It reuses the knowledge-graph layout (.graph-view, .hud, .preview);
+   only the pieces unique to the universe map are styled here. */
+
+.topbar-name:hover { color: var(--accent); }
+.hud-back { display: inline-block; margin-bottom: 6px; font-size: 12px; color: var(--text-3); transition: color 0.15s; }
+.hud-back:hover { color: var(--accent); }
+
+.mv-view {
+  background:
+    radial-gradient(ellipse 60% 50% at 30% 20%, rgba(167, 139, 250, 0.12), transparent 70%),
+    radial-gradient(ellipse 55% 45% at 76% 80%, rgba(59, 130, 246, 0.09), transparent 70%),
+    #05060d;
+}
+.mv-eyebrow { display: block; font: 600 10.5px var(--mono); letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-3); }
+.mv-view .hud-tl h1 { margin-top: 10px; max-width: 400px; font-size: 30px; background-image: linear-gradient(120deg, #fff 30%, #c4b5fd 70%, #7c9cff); }
+.mv-view .hud-stats { margin-top: 8px; }
+
+/* Universe panel (inside the shared .preview drawer) */
+.mv-drawer {
+  /* The shared glass panel, tinted with the universe's colour. */
+  background:
+    radial-gradient(90% 50% at 100% 0%, color-mix(in srgb, var(--c, #7c9cff) 24%, transparent), transparent 60%),
+    linear-gradient(155deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.03) 38%, rgba(255, 255, 255, 0.06) 100%),
+    rgba(12, 14, 28, 0.48);
+  border-color: color-mix(in srgb, var(--c, #7c9cff) 30%, rgba(255, 255, 255, 0.16));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 70px color-mix(in srgb, var(--c, #7c9cff) 20%, transparent), 0 30px 80px -20px rgba(0, 0, 0, 0.75);
+}.mv-drawer-head { display: flex; align-items: center; gap: 12px; padding: 20px 14px 8px 20px; }
+.mv-drawer-head h2 { font-size: 20px; letter-spacing: -0.02em; margin-top: 3px; }
+.mv-drawer-icon { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 14px; color: var(--c); background: linear-gradient(145deg, color-mix(in srgb, var(--c) 30%, transparent), color-mix(in srgb, var(--c) 8%, transparent)); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 0 24px color-mix(in srgb, var(--c) 30%, transparent); }
+.mv-drawer-icon svg { width: 22px; height: 22px; }
+.mv-drawer-body { flex: 1; overflow-y: auto; padding: 8px 20px 16px; display: flex; flex-direction: column; gap: 16px; }
+.mv-desc { font-size: 13.5px; color: var(--text-2); }
+.mv-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mv-stats div { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px; border-radius: 14px; background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02)); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.mv-stats strong { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mv-stats span { font-size: 11px; color: var(--text-3); }
+.mv-drawer-body h3 { font: 600 10.5px var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
+.mv-list { display: flex; flex-direction: column; margin-top: -8px; }
+.mv-row { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 10px; border: 1px solid transparent; border-bottom-color: rgba(255, 255, 255, 0.07); font-size: 13.5px; transition: background 0.15s, border-color 0.15s; }
+.mv-row span:nth-child(2) { flex: 1; }
+.mv-row .ico { color: var(--text-3); }
+.mv-row .ico svg { width: 14px; height: 14px; }
+.mv-row:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.12); }
+.mv-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 26px 14px; text-align: center; border-radius: 14px; border: 1px dashed var(--line-2); color: var(--text-3); font-size: 13px; }
+.mv-empty svg { color: var(--c); width: 22px; height: 22px; }
+.mv-drawer-foot { padding: 14px 20px 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.btn.mv-enter { width: 100%; height: 44px; font-size: 14px; border-radius: 12px; background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 60%), var(--c); color: #05060d; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 28px color-mix(in srgb, var(--c) 45%, transparent); }
+
+@media (max-width: 900px) {
+  .mv-view .hud-tl h1 { font-size: 21px; }
+}
