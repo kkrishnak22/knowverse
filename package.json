@@ -8,10 +8,12 @@
     "start": "node scripts/serve.mjs",
     "index": "node scripts/build-index.mjs",
     "seed": "node scripts/seed-placeholders.mjs && node scripts/build-index.mjs",
-    "vendor": "esbuild scripts/vendor-entry.mjs --bundle --format=esm --platform=browser --minify --outfile=vendor/anthropic-sdk.js"
+    "vendor": "esbuild scripts/vendor-entry.mjs --bundle --format=esm --platform=browser --minify --outfile=vendor/anthropic-sdk.js",
+    "vendor:three": "esbuild scripts/vendor-three.mjs --bundle --format=esm --platform=browser --minify --outfile=vendor/three.js"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "1.8.0",
+    "three": "0.187.0",
     "esbuild": "0.28.2"
   }
 }

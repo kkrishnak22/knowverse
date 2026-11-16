@@ -8,12 +8,16 @@ import * as multiverseView from './views/multiverseView.js';
 import * as graphView from './views/graphView.js';
 import * as docsView from './views/docsView.js';
 import * as architectView from './views/architectView.js';
+import * as learnView from './views/learnView.js';
+import { installPeek } from './peek.js';
+import { installTooltips } from './tooltip.js';
 
 const ROUTES = {
   '': { view: multiverseView, name: 'Multiverse', nav: 'home' },
   u: { view: graphView, name: 'Graph', nav: 'graph' },
   graph: { view: graphView, name: 'Graph', nav: 'graph' },
   note: { view: docsView, name: 'Documentation', nav: 'note' },
+  learn: { view: learnView, name: 'Learn', nav: 'learn' },
   architect: { view: architectView, name: 'Knowledge Architect', nav: 'architect' },
 };
 
@@ -37,7 +41,7 @@ function route() {
   if (segs[0] === 'u') {
     if (!setUniverse(param)) return go('#/');
     param = '';
-  } else if ((segs[0] === 'graph' || segs[0] === 'note') && universeOfId(param)) {
+  } else if ((segs[0] === 'graph' || segs[0] === 'note' || segs[0] === 'learn') && universeOfId(param)) {
     setUniverse(universeOfId(param));
   }
   const home = def.view === multiverseView;
@@ -50,7 +54,7 @@ function route() {
     el.className = '';
     mounted = { view: def.view, cleanup: def.view.mount(el, param) };
   }
-  if (def.view !== docsView) document.title = `${home ? def.name : `${currentUniverse().name} ${def.name}`} · ${vault.name}`;
+  if (def.view !== docsView && def.view !== learnView) document.title = `${home ? def.name : `${currentUniverse().name} ${def.name}`} · ${vault.name}`;
   $('#topbar-view').textContent = home ? def.name : `${currentUniverse().name} Universe  /  ${def.name}`;
   renderStatus();
   for (const b of document.querySelectorAll('.rail-btn[data-nav]')) b.classList.toggle('active', b.dataset.nav === def.nav);
@@ -59,11 +63,12 @@ function route() {
 // ---------- Rail + top bar ----------
 
 function buildChrome() {
-  const btn = (name, label, attrs) => h('button', { class: 'rail-btn', type: 'button', title: label, 'aria-label': label, ...attrs }, icon(name), h('span', { class: 'rail-tip' }, label));
+  const btn = (name, label, attrs) => h('button', { class: 'rail-btn', type: 'button', title: label, 'aria-label': label, 'data-tip-side': 'right', ...attrs }, icon(name));
   $('#rail-nav').append(
     btn('orbit', 'Multiverse', { 'data-nav': 'home', onclick: () => go('#/') }),
     btn('graph', 'Knowledge graph', { 'data-nav': 'graph', onclick: () => go('#/graph') }),
     btn('book', 'Documentation', { 'data-nav': 'note', onclick: () => go('#/note') }),
+    btn('learn', 'Learn', { 'data-nav': 'learn', onclick: () => go('#/learn') }),
     btn('sparkles', 'AI Knowledge Architect', { 'data-nav': 'architect', onclick: () => go('#/architect') }),
     btn('search', 'Search (Ctrl K)', { onclick: openPalette }),
   );
@@ -115,6 +120,7 @@ export function openPalette() {
     { label: 'Open multiverse', hint: 'Go to', ico: 'orbit', run: () => go('#/') },
     { label: 'Open knowledge graph', hint: 'Go to', ico: 'graph', run: () => go('#/graph') },
     { label: 'Open documentation', hint: 'Go to', ico: 'book', run: () => go('#/note') },
+    { label: 'Open Learn', hint: 'Go to', ico: 'learn', run: () => go('#/learn') },
     { label: 'Open AI Knowledge Architect', hint: 'Go to', ico: 'sparkles', run: () => go('#/architect') },
     { label: 'New draft note', hint: 'Create', ico: 'plus', run: () => go('#/architect/new') },
     { label: 'Settings', hint: 'Configure', ico: 'settings', run: () => openSettings() },
@@ -250,6 +256,7 @@ export function openSettings(focus) {
 // ---------- Boot ----------
 
 async function boot() {
+  installTooltips();
   buildChrome();
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -262,6 +269,7 @@ async function boot() {
   await loadVault();
   document.querySelector('.topbar-name').textContent = vault.name;
   if (vault.error && !vault.notes.length) toast(`Could not load notes: ${vault.error}`, 'error', 7000);
+  installPeek();
   window.addEventListener('hashchange', route);
   route();
 }

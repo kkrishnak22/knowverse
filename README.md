@@ -20,6 +20,7 @@ Then open http://localhost:4173.
 | **Multiverse** (`#/`) | Map of every universe as a spiral galaxy, built on the same graph engine as the universes themselves. Drag to pan, scroll to zoom, click or zoom in on a universe to open its panel, double-click or press Enter Universe to go in. |
 | **Knowledge graph** (`#/u/<universe>`) | Force-directed graph of every note. Zoom, pan, drag nodes, hover to highlight connections, filter clusters from the legend, click a node for a preview, double-click to open it. |
 | **Documentation** (`#/note/…`) | Note tree, rendered article, local graph, outline, backlinks and related topics. |
+| **Learn** (`#/learn`) | Interactive courses inside each universe. Lessons run real Python in the browser and show memory in 3D (Live Lab, watch scenes, predict-then-run). The first course is Python, in the Programming universe. See `docs/LEARN_PLAN.md`. |
 | **AI Knowledge Architect** (`#/architect`) | Chat with Claude to turn raw information into a structured note. Each note moves through Draft → In review → Approved → Published. |
 | **Search** (`Ctrl K`) | Full-text search and quick commands. |
 
@@ -76,10 +77,12 @@ js/graph.js           canvas force-graph engine
 js/markdown.js        Markdown + wikilink renderer
 js/ai.js              Architect prompt and Claude streaming
 js/github.js          GitHub commits
-js/views/             multiverse, graph, docs and architect screens
+js/views/             multiverse, graph, docs, learn and architect screens
+js/kit/               Learn kit: Python tracer, 3D memory scene, editor, Live Lab, predict
 content/              the notes
 scripts/              dev server, index builder, placeholder seeder
-vendor/               bundled Anthropic SDK (npm run vendor)
+vendor/               bundled Anthropic SDK (npm run vendor) and three.js (npm run vendor:three)
+docs/                 plans (LEARN_PLAN.md)
 ```
 
 ## Adding a universe

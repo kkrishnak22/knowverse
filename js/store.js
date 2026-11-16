@@ -147,6 +147,10 @@ function makeNote(id, raw, source) {
     status: String(data.status || ''),
     updated: String(data.updated || ''),
     placeholder: data.placeholder === true,
+    // Learn mode: lesson notes carry `lesson: true` and an `order` within their course.
+    lesson: data.lesson === true,
+    order: Number(data.order) || 0,
+    level: String(data.level || ''),
     tags,
   };
 }

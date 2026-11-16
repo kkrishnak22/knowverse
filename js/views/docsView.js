@@ -6,12 +6,14 @@ import { ForceGraph } from '../graph.js';
 import { renderMarkdown } from '../markdown.js';
 import { $, h, fill, icon, toast } from '../ui.js';
 import { draftFromNote } from './architectView.js';
+import { hydrate } from '../kit/blocks.js';
 
 let root = null;
 let currentId = null;
 let mini = null;
 let treeFilter = '';
 let open = new Set();
+let unhydrate = null; // tears down interactive kit blocks in the current article
 
 const TYPE_LABEL = { hub: 'Hub', category: 'Category', topic: 'Topic', subtopic: 'Subtopic' };
 const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { numeric: true });
@@ -20,6 +22,8 @@ export function mount(el, param) {
   root = el;
   el.className = 'docs-view';
   open = new Set(getUi().treeOpen || []);
+  el.classList.toggle('tree-collapsed', Boolean(getUi().treeCollapsed));
+  el.classList.toggle('ctx-collapsed', Boolean(getUi().ctxCollapsed));
 
   el.append(
     h('aside', { class: 'tree-pane', 'aria-label': 'Notes' },
@@ -28,18 +32,26 @@ export function mount(el, param) {
           treeFilter = e.target.value.trim().toLowerCase();
           renderTree();
         } })),
+        h('button', { class: 'icon-btn', type: 'button', title: 'Expand all', 'aria-label': 'Expand all', onclick: () => setAll(true) }, icon('unfold')),
+        h('button', { class: 'icon-btn', type: 'button', title: 'Collapse all', 'aria-label': 'Collapse all', onclick: () => setAll(false) }, icon('fold')),
       ),
       h('nav', { class: 'tree', id: 'doc-tree' }),
     ),
     h('div', { class: 'tree-scrim', onclick: () => el.classList.remove('tree-open') }),
     h('section', { class: 'article-pane', id: 'doc-scroll' }, h('div', { class: 'article', id: 'doc-article' })),
     h('aside', { class: 'context-pane', id: 'doc-context', 'aria-label': 'Note context' }),
+    // Handles on the panel edges: click to collapse or expand the left and right bars.
+    h('button', { class: 'pane-handle left', type: 'button', onclick: () => togglePane('tree-collapsed', 'treeCollapsed') }, icon('chevronLeft')),
+    h('button', { class: 'pane-handle right', type: 'button', onclick: () => togglePane('ctx-collapsed', 'ctxCollapsed') }, icon('chevron')),
   );
+  labelHandles();
 
   const off = on('vault', () => show(currentId));
   show(param);
   return () => {
     off();
+    unhydrate?.();
+    unhydrate = null;
     mini?.destroy();
     mini = null;
   };
@@ -47,6 +59,34 @@ export function mount(el, param) {
 
 export function update(param) {
   show(param);
+}
+
+/** Expand or collapse every branch of the tree. */
+function setAll(expand) {
+  open = new Set(expand ? vault.notes.filter((n) => (vault.children.get(n.id) || []).length).map((n) => n.id) : []);
+  setUi({ treeOpen: [...open] });
+  renderTree();
+}
+
+/** Show or hide a side panel, and remember the choice. */
+function labelHandles() {
+  const set = (sel, collapsed, name) => {
+    const b = root.querySelector(sel);
+    const text = `${collapsed ? 'Show' : 'Hide'} the ${name}`;
+    b.removeAttribute('data-tip');
+    b.title = text;
+    b.setAttribute('aria-label', text);
+    b.setAttribute('aria-expanded', String(!collapsed));
+  };
+  set('.pane-handle.left', root.classList.contains('tree-collapsed'), 'notes list');
+  set('.pane-handle.right', root.classList.contains('ctx-collapsed'), 'side panel');
+}
+
+function togglePane(cls, key) {
+  const now = root.classList.toggle(cls);
+  setUi({ [key]: now });
+  labelHandles();
+  requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
 }
 
 function defaultNote() {
@@ -147,16 +187,19 @@ function renderArticle(note) {
   const kids = [...vault.children.get(note.id)].sort(byTitle);
 
   note._headings = headings;
+  unhydrate?.();
   const article = $('#doc-article', root);
   article.style.setProperty('--note-color', color);
   fill(article, 
     h('div', { class: 'article-bar' },
       h('button', { class: 'icon-btn tree-toggle', title: 'Browse notes', 'aria-label': 'Browse notes', onclick: () => root.classList.toggle('tree-open') }, icon('menu')),
+      h('button', { class: 'icon-btn pane-toggle', type: 'button', title: 'Show or hide the notes list', 'aria-label': 'Show or hide the notes list', onclick: () => togglePane('tree-collapsed', 'treeCollapsed') }, icon('panelLeft')),
       h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' },
         trail.map((a) => [h('a', { href: `#/note/${a.id}` }, a.title), h('span', { class: 'sep' }, '/')]),
         h('span', { class: 'here' }, note.title),
       ),
       h('span', { class: 'spacer' }),
+      note.lesson && h('a', { class: 'btn ghost', href: `#/learn/${note.id}`, title: 'Open as an interactive lesson' }, icon('learn'), h('span', {}, 'Lesson')),
       h('a', { class: 'btn ghost', href: `#/graph/${note.id}`, title: 'Show in graph' }, icon('graph'), h('span', {}, 'Graph')),
       h('button', { class: 'btn ghost', type: 'button', title: 'Copy link', onclick: () => navigator.clipboard?.writeText(location.href).then(() => toast('Link copied', 'success')) }, icon('link'), h('span', {}, 'Copy link')),
       isLocalOnly(note.id) && h('button', { class: 'icon-btn danger', type: 'button', title: 'Remove this local note from the vault', 'aria-label': 'Remove local note', onclick: async () => {
@@ -168,6 +211,7 @@ function renderArticle(note) {
         toast('Local note removed');
       } }, icon('trash')),
       h('button', { class: 'btn', type: 'button', onclick: () => (location.hash = `#/architect/${draftFromNote(note.id)}`) }, icon('sparkles'), h('span', {}, 'Refine in Architect')),
+      h('button', { class: 'icon-btn pane-toggle', type: 'button', title: 'Show or hide the side panel', 'aria-label': 'Show or hide the side panel', onclick: () => togglePane('ctx-collapsed', 'ctxCollapsed') }, icon('panel')),
     ),
     h('header', { class: 'article-head' },
       h('div', { class: 'meta-row' },
@@ -193,6 +237,7 @@ function renderArticle(note) {
       next ? h('a', { class: 'pager-link next', href: `#/note/${next.id}` }, h('span', { class: 'pager-dir' }, 'Next →'), h('span', {}, next.title)) : h('span', {}),
     ),
   );
+  unhydrate = hydrate(article);
 }
 
 // ---------- Context panel ----------

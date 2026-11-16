@@ -1,5 +1,6 @@
 // A compact, dependency-free Markdown renderer with Obsidian-style extras:
-// [[wikilinks]], [[target|alias]], > [!callout] blocks, task lists, tables, ==highlights==.
+// [[wikilinks]], [[target|alias]], > [!callout] blocks, task lists, tables, ==highlights==,
+// plus ```kv-*``` fences for interactive Learn kit blocks.
 // All text is HTML-escaped before any markup is added, so note content cannot inject HTML.
 
 import { esc } from './ui.js';
@@ -16,8 +17,8 @@ function inline(text) {
     const note = resolve(unesc(target));
     const label = alias || target.trim();
     return note
-      ? `<a class="wikilink" href="#/note/${encodeURI(note.id)}" data-note="${esc(note.id)}">${label}</a>`
-      : `<span class="wikilink unresolved" title="This note doesn't exist yet">${label}</span>`;
+      ? `<a class="wikilink" href="#/note/${encodeURI(note.id)}" data-note="${esc(note.id)}" title="Click for a quick look">${label}</a>`
+      : `<span class="wikilink unresolved" data-term="${esc(unesc(target).trim())}" role="button" tabindex="0" title="Click for a quick look">${label}</span>`;
   });
   text = text.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (_, label, url) => {
     const href = safeUrl(unesc(url));
@@ -83,6 +84,11 @@ export function renderMarkdown(src) {
       i++;
       while (i < lines.length && !/^```\s*$/.test(lines[i])) buf.push(lines[i++]);
       i++;
+      // Learn kit blocks (```kv-lab, ```kv-watch, ```kv-predict…) become mount points that js/kit/blocks.js brings to life.
+      if (/^kv-/.test(fence[1])) {
+        out.push(`<div class="kv-block" data-kv="${esc(fence[1].slice(3))}" data-src="${esc(encodeURIComponent(buf.join('\n')))}"></div>`);
+        continue;
+      }
       out.push(`<pre${fence[1] ? ` data-lang="${esc(fence[1])}"` : ''}><code>${esc(buf.join('\n'))}</code></pre>`);
       continue;
     }
