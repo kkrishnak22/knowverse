@@ -9,7 +9,7 @@
 //   price = 40
 //   ```
 
-import { h, icon } from '../ui.js';
+import { h, icon, esc, whenVisible } from '../ui.js';
 import { highlightLine } from './editor.js';
 import { trace } from './python.js';
 import { parseBlock } from './lab.js';
@@ -49,7 +49,6 @@ export function phasesOf(run, code) {
   return phases;
 }
 
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function captionOf(ph) {
   switch (ph.type) {
@@ -203,17 +202,11 @@ export function mountMachine(el, src) {
     }
   }
 
-  const io = new IntersectionObserver((entries) => {
-    if (entries.some((e) => e.isIntersecting)) {
-      io.disconnect();
-      start();
-    }
-  }, { rootMargin: '200px' });
-  io.observe(el);
+  const stopWaiting = whenVisible(el, start);
 
   return () => {
     disposed = true;
-    io.disconnect();
+    stopWaiting();
     document.querySelectorAll('.kvm-fly').forEach((n) => n.remove());
   };
 }

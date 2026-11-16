@@ -35,7 +35,9 @@ function inline(text) {
 }
 
 const LIST = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
-const isTableSep = (l) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l || '');
+// A table's alignment row: cells of dashes with optional colons (`---`, `:-:`). It must contain
+// a pipe, so a lone `---` stays a horizontal rule.
+const isTableSep = (l = '') => l.includes('|') && /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/.test(l);
 const cells = (l) => l.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
 
 function renderList(items) {

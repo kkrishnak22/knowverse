@@ -248,11 +248,29 @@ function rebuild() {
   emit('vault', v);
 }
 
+/** Every note's text as { path: text }: one bundled request, or one request per note as a fallback. */
+async function fetchNoteTexts() {
+  try {
+    const res = await fetch('content/bundle.json');
+    if (res.ok) return (await res.json()).notes;
+  } catch {
+    /* no bundle (plain static server): fall through to the per-note path */
+  }
+  const res = await fetch('content/index.json');
+  if (!res.ok) throw new Error(`content/index.json → HTTP ${res.status}`);
+  const paths = (await res.json()).notes || [];
+  const texts = await Promise.all(paths.map((p) => fetch(`content/${p.split('/').map(encodeURIComponent).join('/')}`).then((r) => (r.ok ? r.text() : null), () => null)));
+  return Object.fromEntries(paths.map((p, i) => [p, texts[i]]).filter(([, t]) => t != null));
+}
+
 export async function loadVault() {
   const notes = [];
   vault.error = null;
+  // Start the notes download now; it runs alongside the universe list instead of after it.
+  const noteTexts = fetchNoteTexts();
+  noteTexts.catch(() => {}); // handled below
   try {
-    const mv = await (await fetch('content/multiverse.json', { cache: 'no-store' })).json();
+    const mv = await (await fetch('content/multiverse.json')).json();
     vault.name = mv.name || vault.name;
     vault.tagline = mv.tagline || vault.tagline;
     vault.universes = mv.universes || [];
@@ -263,20 +281,7 @@ export async function loadVault() {
   const saved = getUi().universe;
   vault.universe = vault.universes.some((u) => u.id === saved) ? saved : vault.universes[0]?.id || DEFAULT_UNIVERSE;
   try {
-    const res = await fetch('content/index.json', { cache: 'no-store' });
-    if (!res.ok) throw new Error(`content/index.json → HTTP ${res.status}`);
-    const manifest = await res.json();
-    const loaded = await Promise.all(
-      (manifest.notes || []).map(async (path) => {
-        try {
-          const r = await fetch(`content/${path.split('/').map(encodeURIComponent).join('/')}`, { cache: 'no-store' });
-          return r.ok ? makeNote(path.replace(/\.md$/i, ''), await r.text(), 'repo') : null;
-        } catch {
-          return null;
-        }
-      }),
-    );
-    notes.push(...loaded.filter(Boolean));
+    for (const [path, text] of Object.entries(await noteTexts)) notes.push(makeNote(path.replace(/\.md$/i, ''), text, 'repo'));
   } catch (err) {
     vault.error = err.message;
   }

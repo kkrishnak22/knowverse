@@ -167,4 +167,3 @@ export async function trace(code, { inputs = [], onStatus } = {}) {
 }
 
 // Exposed for tests (Node loads Pyodide from node_modules and calls this directly).
-export const TRACER_SOURCE = TRACER;

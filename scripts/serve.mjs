@@ -3,9 +3,10 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readContent, bundleJson } from './build-index.mjs';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const port = Number(process.env.PORT) || 4173;
+const port = Number(process.env.PORT) || 3000;
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -21,6 +22,12 @@ const types = {
 createServer(async (req, res) => {
   try {
     const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    if (pathname === '/content/bundle.json') {
+      // Built per request so an edited note shows on the next reload.
+      res.writeHead(200, { 'Content-Type': types['.json'], 'Cache-Control': 'no-store' });
+      res.end(bundleJson(await readContent()));
+      return;
+    }
     let file = normalize(join(root, pathname));
     if (file !== root && !file.startsWith(root + sep)) {
       res.writeHead(403).end('Forbidden');

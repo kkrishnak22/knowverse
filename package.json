@@ -9,7 +9,9 @@
     "index": "node scripts/build-index.mjs",
     "seed": "node scripts/seed-placeholders.mjs && node scripts/build-index.mjs",
     "vendor": "esbuild scripts/vendor-entry.mjs --bundle --format=esm --platform=browser --minify --outfile=vendor/anthropic-sdk.js",
-    "vendor:three": "esbuild scripts/vendor-three.mjs --bundle --format=esm --platform=browser --minify --outfile=vendor/three.js"
+    "vendor:three": "esbuild scripts/vendor-three.mjs --bundle --format=esm --platform=browser --minify --outfile=vendor/three.js",
+    "test": "node --test tests/",
+    "check": "node scripts/check-syntax.mjs && npm test"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "1.8.0",

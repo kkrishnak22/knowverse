@@ -1,8 +1,14 @@
 // Canvas force-directed graph: zoom, pan, drag nodes, hover-highlight, focus animations.
-// No dependencies — the simulation is a small custom one tuned for clustered knowledge maps.
+// Camera motion, the frame loop and label placement come from js/engine/, which every
+// zoomable surface shares; this file owns the simulation, the drawing and the input wiring.
+
+import { clamp, approach, zoomAt, easeFactor, Inertia } from './engine/camera.js';
+import { frameLoop, ACTIVE, AMBIENT, IDLE } from './engine/loop.js';
+import { placeLabels } from './engine/labels.js';
 
 const TAU = Math.PI * 2;
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const SIM_STEP = 1000 / 60; // the simulation is tuned for 60 steps a second, on any display
+const LABEL_PRIORITY = { universe: 5, hub: 5, category: 4, topic: 2, subtopic: 1 };
 const lerp = (a, b, t) => a + (b - a) * t;
 
 const RADIUS = { universe: 30, hub: 15, category: 9.5, topic: 5.5, subtopic: 3.8 };
@@ -76,6 +82,10 @@ export class ForceGraph {
     this.autoFit = false;
     this.follow = null;
     this.pointers = new Map();
+    this.inertia = new Inertia();
+    this.wheelZoom = null; // { k, x, y }: the zoom level the wheel is easing toward
+    this.dragging = false;
+    this.simTime = 0;
     this.running = false;
     this.w = this.h = 0;
     this.stars = Array.from({ length: this.opts.mini ? 0 : 150 }, () => ({
@@ -83,7 +93,6 @@ export class ForceGraph {
       r: Math.random() < 0.12 ? 1.6 : 1, a: 0.15 + Math.random() * 0.5,
       tw: 0.4 + Math.random() * 1.6, p: Math.random() * TAU,
     }));
-    this._frame = this._frame.bind(this);
     this._bind();
     this._ro = new ResizeObserver(() => this.resize());
     this._ro.observe(canvas.parentElement);
@@ -121,8 +130,19 @@ export class ForceGraph {
     const fresh = this._seedPositions(prev);
     this.alpha = fresh ? 1 : Math.max(this.alpha, 0.5);
     this.autoFit = true;
+    if (this.opts.presettle) {
+      // Small graphs appear already laid out: run the simulation to rest before the first
+      // frame instead of animating it, and frame the result straight away.
+      for (let i = 0; i < 400 && this.alpha >= 0.004; i++) this._tick();
+      if (this.w) {
+        this.t = this._fitTransform();
+        this.target = null;
+        this.autoFit = false;
+      }
+    }
     if (this.selected && !this.byId.has(this.selected)) this.selected = null;
     this.hover = null;
+    this.wake();
   }
 
   /** Lay nodes out radially by hierarchy so clusters start untangled. Returns true if this is a first layout. */
@@ -243,6 +263,7 @@ export class ForceGraph {
 
   reheat(v = 0.35) {
     this.alpha = Math.max(this.alpha, v);
+    this.wake();
   }
 
   // ---------- camera ----------
@@ -270,6 +291,7 @@ export class ForceGraph {
     this.autoFit = false;
     this.follow = null;
     this.target = this._fitTransform();
+    this.wake();
   }
 
   zoomBy(factor) {
@@ -283,6 +305,7 @@ export class ForceGraph {
     const r = k / base.k;
     this.target = { k, x: cx - (cx - base.x) * r, y: cy - (cy - base.y) * r };
     this.opts.onZoom?.(k);
+    this.wake();
   }
 
   /** The visible node closest to the middle of the view, if one is within maxPx of it. */
@@ -309,6 +332,7 @@ export class ForceGraph {
     this.autoFit = false;
     this.follow = { id, k: Math.max(this.t.k, zoom) };
     this._followTarget();
+    this.wake();
   }
 
   _followTarget() {
@@ -324,18 +348,32 @@ export class ForceGraph {
 
   setInset(right) {
     this.insetRight = right;
+    this.wake();
   }
 
   select(id) {
     this.selected = id && this.byId.has(id) ? id : null;
+    this.wake();
   }
 
   setHidden(set) {
     this.hiddenCats = set;
+    this.wake();
   }
 
   setMatches(set) {
     this.matches = set;
+    this.wake();
+  }
+
+  setLabels(on) {
+    this.showLabels = on;
+    this.wake();
+  }
+
+  /** Ask for a frame. Call after anything that changes what should be on screen. */
+  wake() {
+    this._ticker?.wake();
   }
 
   // ---------- rendering ----------
@@ -353,18 +391,20 @@ export class ForceGraph {
     this.canvas.style.height = this.h + 'px';
     if (first) this.t = { x: this.w / 2, y: this.h / 2, k: this.opts.mini ? 1 : 0.9 };
     else if (!this.touched && !this.follow) this.target = this._fitTransform();
-    if (!this.running) this._draw(performance.now());
+    if (!this.running) this._draw(performance.now(), 0);
+    this.wake();
   }
 
   start() {
     if (this.running) return;
     this.running = true;
-    this._raf = requestAnimationFrame(this._frame);
+    this._ticker = frameLoop.add((dt, now) => this._step(dt, now));
   }
 
   stop() {
     this.running = false;
-    cancelAnimationFrame(this._raf);
+    this._ticker?.remove();
+    this._ticker = null;
   }
 
   destroy() {
@@ -373,27 +413,52 @@ export class ForceGraph {
     this._unbind?.();
   }
 
-  _frame(ts) {
-    if (!this.running) return;
-    this._tick();
+  /** One frame: advance the simulation and camera, draw, and tell the loop how busy we are. */
+  _step(dt, now) {
+    this.simTime = Math.min(this.simTime + dt, SIM_STEP * 3);
+    while (this.simTime >= SIM_STEP) {
+      this._tick();
+      this.simTime -= SIM_STEP;
+    }
+    let moving = this.alpha >= 0.004 || this.dragging;
+
     if (this.autoFit) {
       this.target = this._fitTransform();
       if (this.alpha < 0.03) this.autoFit = false;
     }
     if (this.follow) this._followTarget();
-    if (this.target) {
-      const t = this.t;
-      const g = this.target;
-      t.x = lerp(t.x, g.x, 0.14);
-      t.y = lerp(t.y, g.y, 0.14);
-      t.k = lerp(t.k, g.k, 0.14);
-      if (!this.autoFit && Math.abs(t.x - g.x) < 0.3 && Math.abs(t.y - g.y) < 0.3 && Math.abs(t.k - g.k) < 0.002) this.target = null;
+
+    if (this.wheelZoom) {
+      // Ease toward the wheel's zoom level, keeping the point under the cursor still.
+      const z = this.wheelZoom;
+      const k = Math.exp(Math.log(this.t.k) + (Math.log(z.k) - Math.log(this.t.k)) * easeFactor(dt, 55));
+      const arrived = Math.abs(z.k / k - 1) < 0.002;
+      this.t = zoomAt(this.t, z.x, z.y, arrived ? z.k : k);
+      if (arrived) this.wheelZoom = null;
+      moving = true;
     }
-    this._draw(ts);
-    this._raf = requestAnimationFrame(this._frame);
+    if (this.inertia.active) {
+      const { dx, dy } = this.inertia.step(dt);
+      this.t.x += dx;
+      this.t.y += dy;
+      moving = true;
+    }
+    if (this.target) {
+      if (approach(this.t, this.target, dt) && !this.autoFit && !this.follow) this.target = null;
+      moving = true;
+    }
+
+    const fading = this._draw(now, dt);
+    if (moving || fading) return ACTIVE;
+    // Settled. Stars, pulses and highlight particles are decoration: a lower frame rate will do.
+    const decorated = this.stars.length > 0 || this.opts.pulses || this.hover || this.selected;
+    return decorated ? AMBIENT : IDLE;
   }
 
-  _draw(ts) {
+  /** Draw one frame. Returns true while a fade is still in progress. */
+  _draw(ts, dt = 16.7) {
+    let fading = false;
+    const fade = easeFactor(dt, 95);
     const { ctx, w, h, t } = this;
     if (!w) return;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -418,7 +483,8 @@ export class ForceGraph {
       if (!this._visible(n)) goal = 0;
       else if (this.matches && !this.matches.has(n.id)) goal = 0.1;
       else if (active && !isFocus(n)) goal = 0.16;
-      n.o = Math.abs(n.o - goal) < 0.01 ? goal : lerp(n.o, goal, 0.16);
+      n.o = Math.abs(n.o - goal) < 0.01 ? goal : lerp(n.o, goal, fade);
+      if (n.o !== goal) fading = true;
     }
 
     ctx.save();
@@ -528,38 +594,61 @@ export class ForceGraph {
     }
     ctx.restore();
 
-    // Labels in screen space so text stays crisp at any zoom.
+    // Labels in screen space so text stays crisp at any zoom. Like place names on a map,
+    // the most important labels are placed first and any that would overlap are held back;
+    // each label fades toward its target so nothing pops in or out.
     if (this.showLabels) {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.lineJoin = 'round';
+      const candidates = [];
       for (const n of this.nodes) {
-        if (n.o < 0.05) continue;
-        const focus = active && isFocus(n);
+        const focus = Boolean(active && isFocus(n));
         const zoomAlpha = this.opts.mini || focus ? 1 : clamp((t.k - LABEL_ZOOM[n.type]) / 0.22, 0, 1);
-        const a = zoomAlpha * (focus ? 1 : n.o);
-        if (a < 0.03) continue;
-        const sx = n.x * t.k + t.x;
+        const want = n.o < 0.05 ? 0 : zoomAlpha * (focus ? 1 : n.o);
+        n.sx = n.x * t.k + t.x;
         // Galaxy labels sit just under the bright core, inside their own galaxy, so they never
         // land on a neighbour drawn below it.
-        const sy = n.y * t.k + t.y + n.r * (n.sprite ? 1.05 : 1) * t.k + 5;
-        if (sx < -80 || sx > w + 80 || sy < -20 || sy > h + 20) continue;
-        ctx.font = `${this.opts.mini ? '500 10.5px' : LABEL_FONT[n.type]} Inter, system-ui, sans-serif`;
-        ctx.globalAlpha = a;
+        n.sy = n.y * t.k + t.y + n.r * (n.sprite ? 1.05 : 1) * t.k + 5;
+        n.labelGoal = 0;
+        n.labelFocus = focus;
+        if (want < 0.03 || n.sx < -80 || n.sx > w + 80 || n.sy < -20 || n.sy > h + 20) continue;
+        const font = `${this.opts.mini ? '500 10.5px' : LABEL_FONT[n.type]} Inter, system-ui, sans-serif`;
+        if (n.labelFont !== font) {
+          ctx.font = n.labelFont = font;
+          n.labelWidth = ctx.measureText(n.title).width;
+        }
+        candidates.push({
+          n, want,
+          x: n.sx - n.labelWidth / 2, y: n.sy, w: n.labelWidth, h: n.sub ? 32 : 15,
+          priority: (focus ? 100 : 0) + LABEL_PRIORITY[n.type] * 10 + Math.min(n.degree, 9),
+          force: n === active,
+        });
+      }
+      placeLabels(candidates).forEach((show, i) => show && (candidates[i].n.labelGoal = candidates[i].want));
+
+      for (const n of this.nodes) {
+        const goal = n.labelGoal ?? 0;
+        n.labelAlpha = Math.abs((n.labelAlpha ?? goal) - goal) < 0.02 ? goal : lerp(n.labelAlpha ?? goal, goal, fade);
+        if (n.labelAlpha !== goal) fading = true;
+        if (n.labelAlpha < 0.02) continue;
+        ctx.font = n.labelFont;
+        ctx.globalAlpha = n.labelAlpha;
         ctx.strokeStyle = 'rgba(7, 9, 15, 0.85)';
         ctx.lineWidth = 3.5;
-        ctx.strokeText(n.title, sx, sy);
-        ctx.fillStyle = focus || n.type === 'hub' ? '#ffffff' : n.type === 'category' ? '#e6ebff' : '#b9c3e0';
-        ctx.fillText(n.title, sx, sy);
+        ctx.strokeText(n.title, n.sx, n.sy);
+        ctx.fillStyle = n.labelFocus || n.type === 'hub' ? '#ffffff' : n.type === 'category' ? '#e6ebff' : '#b9c3e0';
+        ctx.fillText(n.title, n.sx, n.sy);
         if (n.sub) {
           ctx.font = '500 11px Inter, system-ui, sans-serif';
-          ctx.strokeText(n.sub, sx, sy + 18);
+          ctx.strokeText(n.sub, n.sx, n.sy + 18);
           ctx.fillStyle = '#8f9abd';
-          ctx.fillText(n.sub, sx, sy + 18);
+          ctx.fillText(n.sub, n.sx, n.sy + 18);
         }
       }
     }
     ctx.globalAlpha = 1;
+    return fading;
   }
 
   /** Control point of a curved link: the midpoint pushed sideways by l.bend. */
@@ -640,6 +729,10 @@ export class ForceGraph {
       this.touched = true;
       this.autoFit = false;
       this.follow = null;
+      this.wheelZoom = null;
+      this.inertia.stop(); // touching the map catches it mid-glide
+      this.dragging = true;
+      this.wake();
       if (this.pointers.size === 2) {
         const [a, b] = [...this.pointers.values()];
         pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), k: this.t.k };
@@ -651,6 +744,7 @@ export class ForceGraph {
 
     const move = (e) => {
       const [x, y] = pos(e);
+      this.wake();
       if (this.pointers.has(e.pointerId)) this.pointers.set(e.pointerId, [x, y]);
       if (pinch && this.pointers.size === 2) {
         const [a, b] = [...this.pointers.values()];
@@ -679,6 +773,7 @@ export class ForceGraph {
           } else {
             this.t.x += x - drag.lx;
             this.t.y += y - drag.ly;
+            this.inertia.track(x, y, e.timeStamp);
           }
           c.style.cursor = 'grabbing';
         }
@@ -694,9 +789,12 @@ export class ForceGraph {
     const up = (e) => {
       this.pointers.delete(e.pointerId);
       if (this.pointers.size < 2) pinch = null;
+      this.dragging = this.pointers.size > 0;
+      this.wake();
       if (!drag) return;
       const d = drag;
       drag = null;
+      if (d.moved && !d.node) this.inertia.release(e.timeStamp); // a flick keeps gliding
       if (d.node) d.node.fixed = false;
       c.style.cursor = d.node ? 'pointer' : 'grab';
       if (d.moved) return;
@@ -719,32 +817,31 @@ export class ForceGraph {
       this.autoFit = false;
       this.follow = null;
       this.target = null;
-      const k = clamp(this.t.k * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0016)), 0.15, this.opts.maxZoom || 4);
-      const r = k / this.t.k;
-      this.t = { k, x: x - (x - this.t.x) * r, y: y - (y - this.t.y) * r };
+      this.inertia.stop();
+      // Successive wheel ticks add up into one zoom target that the camera eases toward.
+      const from = this.wheelZoom?.k ?? this.t.k;
+      const k = clamp(from * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0016)), 0.15, this.opts.maxZoom || 4);
+      this.wheelZoom = { k, x, y };
       this.opts.onZoom?.(k);
+      this.wake();
     };
 
     const leave = () => {
       if (!drag) this.hover = null;
+      this.wake();
     };
 
-    c.addEventListener('pointerdown', down);
-    c.addEventListener('pointermove', move);
-    c.addEventListener('pointerup', up);
-    c.addEventListener('pointercancel', up);
-    c.addEventListener('pointerleave', leave);
-    c.addEventListener('wheel', wheel, { passive: false });
+    const listeners = new AbortController();
+    const on = (type, fn) => c.addEventListener(type, fn, { signal: listeners.signal, passive: false });
+    on('pointerdown', down);
+    on('pointermove', move);
+    on('pointerup', up);
+    on('pointercancel', up);
+    on('pointerleave', leave);
+    on('wheel', wheel);
     c.style.cursor = 'grab';
     c.style.touchAction = 'none';
-    this._unbind = () => {
-      c.removeEventListener('pointerdown', down);
-      c.removeEventListener('pointermove', move);
-      c.removeEventListener('pointerup', up);
-      c.removeEventListener('pointercancel', up);
-      c.removeEventListener('pointerleave', leave);
-      c.removeEventListener('wheel', wheel);
-    };
+    this._unbind = () => listeners.abort();
   }
 }
 

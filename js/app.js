@@ -256,6 +256,8 @@ export function openSettings(focus) {
 // ---------- Boot ----------
 
 async function boot() {
+  // Developer frame meter: add ?perf to the URL.
+  if (new URLSearchParams(location.search).has('perf')) import('./engine/perf.js').then((m) => m.showPerfMeter());
   installTooltips();
   buildChrome();
   document.addEventListener('keydown', (e) => {

@@ -13,7 +13,7 @@
 //   age = 20   # Python makes the value 20 and sticks the name age on it
 //   ```
 
-import { h, icon } from '../ui.js';
+import { h, icon, esc, whenVisible } from '../ui.js';
 import { createEditor } from './editor.js';
 import { trace, loadPython, pythonLoaded } from './python.js';
 
@@ -58,14 +58,14 @@ export function describe(prev, cur, code) {
   const scope = (s) => new Map((s.frames.at(-1)?.vars || []).map(([n, id]) => [n, id]));
   const p = scope(prev);
   const c = scope(cur);
-  const val = (s, id) => escapeHtml(s.heap[id]?.repr ?? '?');
+  const val = (s, id) => esc(s.heap[id]?.repr ?? '?');
   if (cur.frames.length > prev.frames.length) msgs.push(`Calling ${cur.frames.at(-1).name}() — it gets its own space for names.`);
   else if (cur.frames.length < prev.frames.length) msgs.push(`${prev.frames.at(-1).name}() finished, and its names are gone.`);
   else {
     for (const [name, id] of c) {
-      if (!p.has(name)) msgs.push(`New name **${escapeHtml(name)}** → ${val(cur, id)}`);
-      else if (p.get(name) !== id) msgs.push(`**${escapeHtml(name)}** now points to ${val(cur, id)} (was ${val(prev, p.get(name))})`);
-      else if (prev.heap[id] && cur.heap[id] && prev.heap[id].repr !== cur.heap[id].repr) msgs.push(`The ${cur.heap[id].kind} that **${escapeHtml(name)}** points to changed: ${val(cur, id)}`);
+      if (!p.has(name)) msgs.push(`New name **${esc(name)}** → ${val(cur, id)}`);
+      else if (p.get(name) !== id) msgs.push(`**${esc(name)}** now points to ${val(cur, id)} (was ${val(prev, p.get(name))})`);
+      else if (prev.heap[id] && cur.heap[id] && prev.heap[id].repr !== cur.heap[id].repr) msgs.push(`The ${cur.heap[id].kind} that **${esc(name)}** points to changed: ${val(cur, id)}`);
     }
     const stillUsed = new Set([...c.values()]);
     for (const [, id] of p) {
@@ -76,10 +76,10 @@ export function describe(prev, cur, code) {
     }
   }
   const newOut = cur.out.slice(prev.out.length);
-  if (newOut) msgs.push(`Printed: ${escapeHtml(JSON.stringify(newOut.replace(/\n$/, '')))}`);
-  if (cur.event === 'return' && cur.frames.length > 1) msgs.push(`${escapeHtml(cur.frames.at(-1).name)}() is handing its result back to the line that called it.`);
-  if (!msgs.length && ran) msgs.push(`Ran line ${ran}: ${escapeHtml(strip(code.split('\n')[ran - 1] || ''))}`);
-  return [note && `<b>${escapeHtml(note)}</b>`, msgs.join(' · ')].filter(Boolean).join('<br>');
+  if (newOut) msgs.push(`Printed: ${esc(JSON.stringify(newOut.replace(/\n$/, '')))}`);
+  if (cur.event === 'return' && cur.frames.length > 1) msgs.push(`${esc(cur.frames.at(-1).name)}() is handing its result back to the line that called it.`);
+  if (!msgs.length && ran) msgs.push(`Ran line ${ran}: ${esc(strip(code.split('\n')[ran - 1] || ''))}`);
+  return [note && `<b>${esc(note)}</b>`, msgs.join(' · ')].filter(Boolean).join('<br>');
 }
 
 const md = (s) => s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -176,7 +176,7 @@ export function mountLab(el, src, { mode = 'lab' } = {}) {
     consoleOut.textContent = step.out || '';
     consoleOut.classList.toggle('empty', !step.out);
     if (last && run.error) {
-      consoleErr.innerHTML = `<b>${run.error.type}</b>${run.error.line ? ` on line ${run.error.line}` : ''}: ${escapeHtml(run.error.message)}<span>${HINTS[run.error.type] || ''}</span>`;
+      consoleErr.innerHTML = `<b>${run.error.type}</b>${run.error.line ? ` on line ${run.error.line}` : ''}: ${esc(run.error.message)}<span>${HINTS[run.error.type] || ''}</span>`;
       editor.setErrorLine(run.error.line);
     } else consoleErr.textContent = '';
     caption.innerHTML = md(describe(run.steps[index - 1], step, lastCode)) || '&nbsp;';
@@ -235,7 +235,7 @@ export function mountLab(el, src, { mode = 'lab' } = {}) {
       if (result.error?.type === 'SyntaxError' || result.error?.type === 'IndentationError') {
         // Keep the last good picture while the student is mid-typing; just flag the line.
         editor.setErrorLine(result.error.line);
-        consoleErr.innerHTML = `<b>${result.error.type}</b> on line ${result.error.line}: ${escapeHtml(result.error.message)}<span>${HINTS[result.error.type]}</span>`;
+        consoleErr.innerHTML = `<b>${result.error.type}</b> on line ${result.error.line}: ${esc(result.error.message)}<span>${HINTS[result.error.type]}</span>`;
         return;
       }
       lastCode = code;
@@ -271,23 +271,13 @@ export function mountLab(el, src, { mode = 'lab' } = {}) {
   }
 
   // Start Python and the 3D scene only when the lab scrolls into view.
-  const io = new IntersectionObserver((entries) => {
-    if (entries.some((e) => e.isIntersecting)) {
-      io.disconnect();
-      start();
-    }
-  }, { rootMargin: '200px' });
-  io.observe(el);
+  const stopWaiting = whenVisible(el, start);
 
   return () => {
     disposed = true;
-    io.disconnect();
+    stopWaiting();
     pause();
     clearTimeout(editTimer);
     scene?.dispose();
   };
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

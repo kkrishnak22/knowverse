@@ -278,6 +278,7 @@ function renderContext(note) {
   const nodes = [...ids].map((id) => vault.byId.get(id)).map((n) => ({ id: n.id, title: n.title, type: n.type, category: n.category, color: colorOf(n) }));
   mini = new ForceGraph(canvas, {
     mini: true,
+    presettle: true,
     onSelect: (n) => n && n.id !== note.id && (location.hash = `#/note/${n.id}`),
     onOpen: (n) => (location.hash = `#/note/${n.id}`),
   });

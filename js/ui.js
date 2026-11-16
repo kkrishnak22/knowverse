@@ -154,6 +154,13 @@ export function downloadText(filename, text) {
   }, 500);
 }
 
+/** Run `fn` once, the first time `el` comes near the viewport. Returns a function that cancels the wait. */
+export function whenVisible(el, fn) {
+  const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && (io.disconnect(), fn()), { rootMargin: '200px' });
+  io.observe(el);
+  return () => io.disconnect();
+}
+
 export const debounce = (fn, ms = 200) => {
   let t;
   return (...args) => {

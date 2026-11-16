@@ -41,7 +41,7 @@ export function mount(el, param) {
       h('button', { class: 'icon-btn', title: 'Zoom out', 'aria-label': 'Zoom out', onclick: () => graph.zoomBy(1 / 1.4) }, icon('minus')),
       h('button', { class: 'icon-btn', title: 'Fit to screen', 'aria-label': 'Fit to screen', onclick: () => graph.fit() }, icon('fit')),
       h('button', { class: 'icon-btn active', id: 'label-toggle', title: 'Toggle labels', 'aria-label': 'Toggle labels', onclick: (e) => {
-        graph.showLabels = !graph.showLabels;
+        graph.setLabels(!graph.showLabels);
         e.currentTarget.classList.toggle('active', graph.showLabels);
       } }, icon('tag')),
     ),

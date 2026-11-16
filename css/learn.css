@@ -30,7 +30,7 @@
 .lesson-row:first-child { border-top: 0; }
 a.lesson-row:hover { background: var(--bg-2); }
 a.lesson-row:hover .lesson-num { border-color: var(--c); color: var(--text); }
-.lesson-num { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; border: 1px solid var(--line-2); font: 600 12.5px var(--mono); color: var(--text-3); transition: 0.15s; }
+.lesson-num { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; border: 1px solid var(--line-2); font: 600 12.5px var(--mono); color: var(--text-3); transition: var(--t-ui); }
 .lesson-num svg { width: 16px; height: 16px; }
 .lesson-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .lesson-text strong { font-weight: 600; font-size: 14.5px; }
@@ -66,7 +66,7 @@ a.lesson-row:hover .lesson-num { border-color: var(--c); color: var(--text); }
 .lesson-intro > .kv-block:first-child { margin-top: 0; }
 
 .lesson-tabs { position: sticky; top: 52px; z-index: 5; display: flex; gap: 4px; padding: 5px; margin: 8px 0 22px; width: max-content; max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: rgba(11, 14, 23, 0.85); backdrop-filter: blur(12px); }
-.lesson-tab { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: 10px; color: var(--text-2); font-weight: 500; transition: 0.15s; white-space: nowrap; }
+.lesson-tab { display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px; border-radius: 10px; color: var(--text-2); font-weight: 500; transition: var(--t-ui); white-space: nowrap; }
 .lesson-tab svg { width: 15px; height: 15px; }
 .lesson-tab:hover { color: var(--text); background: var(--bg-3); }
 .lesson-tab.active { color: #06121a; background: linear-gradient(135deg, var(--c), #7c9cff); font-weight: 600; }
@@ -81,7 +81,7 @@ a.lesson-row:hover .lesson-num { border-color: var(--c); color: var(--text); }
 .btn.done { background: color-mix(in srgb, var(--ok) 14%, transparent); border-color: color-mix(in srgb, var(--ok) 40%, transparent); color: var(--ok); }
 
 .lesson-strip { display: flex; gap: 10px; overflow-x: auto; padding: 6px 2px 14px; scroll-snap-type: x proximity; }
-.strip-card { position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 10px; min-width: 190px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg-1); scroll-snap-align: center; transition: 0.15s; }
+.strip-card { position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 10px; min-width: 190px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg-1); scroll-snap-align: center; transition: var(--t-ui); }
 a.strip-card:hover { border-color: var(--line-2); background: var(--bg-2); }
 .strip-card.active { border-color: var(--c); box-shadow: 0 0 0 1px var(--c), 0 10px 30px -14px var(--c); }
 .strip-num { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--bg-3); font: 600 11.5px var(--mono); color: var(--text-2); }
@@ -166,7 +166,7 @@ a.strip-card:hover { border-color: var(--line-2); background: var(--bg-2); }
 .kv-caption b { color: var(--text); font-weight: 600; }
 .kv-caption strong { color: var(--accent); font-family: var(--mono); font-weight: 500; }
 .kv-controls { position: absolute; left: 0; right: 0; bottom: 0; height: 50px; display: flex; align-items: center; gap: 4px; padding: 0 12px; border-top: 1px solid var(--line); background: rgba(9, 12, 20, 0.92); z-index: 2; }
-.kv-ctl { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: var(--text-2); transition: 0.15s; flex: none; }
+.kv-ctl { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: var(--text-2); transition: var(--t-ui); flex: none; }
 .kv-ctl:hover { background: var(--bg-3); color: var(--text); }
 .kv-ctl svg { width: 16px; height: 16px; }
 .kv-ctl.primary { background: linear-gradient(135deg, #5eead4, #7c9cff); color: #06121a; }
@@ -183,7 +183,7 @@ a.strip-card:hover { border-color: var(--line-2); background: var(--bg-2); }
 .kv-static-code { margin: 0; padding: 12px 14px; border-radius: 12px; background: #090c14; border: 1px solid var(--line); font: 13.5px/1.7 var(--mono); color: #dfe4f2; overflow-x: auto; }
 .kv-question { margin: 14px 0 10px !important; font-weight: 600; color: var(--text); }
 .kv-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
-.kv-option { padding: 10px 14px; border-radius: 11px; border: 1px solid var(--line-2); background: var(--bg-2); text-align: left; transition: 0.15s; color: var(--text); }
+.kv-option { padding: 10px 14px; border-radius: 11px; border: 1px solid var(--line-2); background: var(--bg-2); text-align: left; transition: var(--t-ui); color: var(--text); }
 .kv-option:hover:not(:disabled) { border-color: var(--violet); background: var(--bg-3); }
 .kv-option:disabled { cursor: default; opacity: 0.55; }
 .kv-option.correct { opacity: 1; border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, transparent); }
@@ -239,8 +239,17 @@ a.strip-card:hover { border-color: var(--line-2); background: var(--bg-2); }
 .kv-next:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
 .kv-next:disabled { opacity: 0.35; cursor: default; }
 .kv-next svg { width: 15px; height: 15px; }
-.guide:not(:disabled) { animation: guide 1.6s ease-in-out infinite; }
-@keyframes guide { 0%, 100% { box-shadow: 0 0 0 0 rgba(94, 234, 212, 0.55); } 50% { box-shadow: 0 0 0 9px rgba(94, 234, 212, 0); } }
+/* "Do this next" pulse. The ring is a pseudo-element animated with transform and opacity only, so
+   the graphics card runs it with no repainting. (Animating box-shadow itself repaints the whole
+   element every frame, which made scrolling past a game stutter.) */
+.guide:not(:disabled) { position: relative; }
+.guide:not(:disabled)::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.55); animation: guide 1.6s ease-out infinite;
+}
+@keyframes guide { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(var(--guide-grow, 1.14)); } }
+/* Large targets grow by a smaller factor so the ring spreads about as far as it does on a button. */
+.kvr-palette.guide, .kvr-program.guide { --guide-grow: 1.045; }
 .kv-edit-hint { position: absolute; right: 12px; top: 56px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; font-size: 11.5px; color: var(--accent); background: rgba(94, 234, 212, 0.1); border: 1px solid rgba(94, 234, 212, 0.3); pointer-events: none; animation: guide 1.6s ease-in-out infinite; z-index: 2; }
 .kv-edit-hint svg { width: 13px; height: 13px; }
 
@@ -357,13 +366,13 @@ details[open] > summary .module-twisty { transform: rotate(90deg); }
 .kvr-side-head span { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .kvr-palette { display: flex; flex-direction: column; gap: 6px; border-radius: 12px; }
 .kvr-card, .kvr-step { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--bg-2); color: var(--text); font-size: 13px; font-weight: 500; text-align: left; }
-.kvr-card { cursor: grab; transition: 0.15s; }
+.kvr-card { cursor: grab; transition: var(--t-ui); }
 .kvr-card:hover { border-color: var(--accent); background: var(--bg-3); transform: translateX(2px); }
 .kvr-card:active { cursor: grabbing; }
 .kvr-card svg, .kvr-step svg { width: 16px; height: 16px; }
 .kvr-card > .ico:nth-child(2), .kvr-step > .ico { color: var(--accent); }
 .kvr-grip { color: var(--text-3); margin-left: -4px; }
-.kvr-program { list-style: none; margin: 0 !important; padding: 6px !important; min-height: 120px; flex: 1; display: flex; flex-direction: column; gap: 6px; border-radius: 12px; border: 1px dashed var(--line-2); background: rgba(255, 255, 255, 0.015); transition: 0.15s; }
+.kvr-program { list-style: none; margin: 0 !important; padding: 6px !important; min-height: 120px; flex: 1; display: flex; flex-direction: column; gap: 6px; border-radius: 12px; border: 1px dashed var(--line-2); background: rgba(255, 255, 255, 0.015); transition: var(--t-ui); }
 .kvr-program.over { border-color: var(--accent); background: rgba(94, 234, 212, 0.06); }
 .kvr-program li { margin: 0 !important; }
 .kvr-drop { margin: auto !important; color: var(--text-3); font-size: 12.5px; font-style: italic; list-style: none; }
@@ -456,7 +465,6 @@ details[open] > summary .module-twisty { transform: rotate(90deg); }
 [data-end=won] .t-cup { filter: drop-shadow(0 0 14px rgba(74, 222, 128, 0.8)); }
 [data-end=lost] .t-cup { filter: drop-shadow(0 0 12px rgba(248, 113, 113, 0.7)); }
 .kvt-program { min-height: 0; border-style: solid; }
-.kvt-program.guide { animation: guide 1.6s ease-in-out infinite; }
 .kvt-program .kvr-step { padding: 7px 6px 7px 8px; gap: 6px; }
 .kvt-down svg { transform: rotate(180deg); }
 .kvr-x:disabled { opacity: 0.2; cursor: default; }

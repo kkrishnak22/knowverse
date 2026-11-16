@@ -27,6 +27,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      # Quality gate: nothing reaches the live site unless every file parses and every test passes.
+      - name: Check syntax and run tests
+        run: |
+          node scripts/check-syntax.mjs
+          node --test tests/
       - name: Build note index
         run: node scripts/build-index.mjs
       - name: Assemble site

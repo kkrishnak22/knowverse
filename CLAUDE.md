@@ -2,6 +2,16 @@
 
 A static knowledge-multiverse site: no build step, plain ES modules, served as-is (GitHub Pages).
 
+## Quality bar (read first)
+
+`docs/ENGINEERING.md` is the standard for every change. The short version:
+
+- Anything that animates uses the shared engine in `js/engine/` (`frameLoop`, camera, label placement). Never call `requestAnimationFrame` directly or ease with a per-frame `lerp`.
+- Every `mount()` returns a cleanup that undoes everything it started.
+- Reuse before writing: check `js/ui.js`, `js/store.js`, `js/engine/` and the CSS variables first. Never keep two copies of the same logic.
+- `npm run check` (syntax + tests) must pass before a commit; the deploy is blocked if it fails. Logic that can be silently wrong gets a test in `tests/`.
+- Verify in the browser, and confirm the screen goes idle when the user stops.
+
 ## Conventions
 
 - Vanilla JS modules; DOM built with `h()` / `fill()` from `js/ui.js`. Icons live in `js/ui.js` (`icons`).

@@ -1,9 +1,15 @@
-// Scans content/ for Markdown notes and writes content/index.json.
-// The site reads this manifest to discover notes. Runs locally (npm run index)
-// and in the GitHub Pages workflow on every push, so published notes appear automatically.
-import { readdir, writeFile } from 'node:fs/promises';
+// Scans content/ for Markdown notes and writes two files the site loads at startup:
+//
+//   content/index.json   the list of note paths (kept for tools and as a fallback)
+//   content/bundle.json  every note's text in one file, so the site makes one request
+//                        instead of one per note
+//
+// Run with `npm run index`, and by the GitHub Pages workflow on every push. The dev server
+// (scripts/serve.mjs) builds the bundle fresh on each request, so local edits show at once
+// and bundle.json is never committed.
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const contentDir = resolve(fileURLToPath(new URL('../content', import.meta.url)));
 
@@ -17,12 +23,20 @@ async function walk(dir) {
   return out;
 }
 
-const notes = (await walk(contentDir))
-  .map((f) => relative(contentDir, f).split(sep).join('/'))
-  .sort();
+/** Read every note. Returns { paths: [...], notes: { path: text } }, sorted by path. */
+export async function readContent() {
+  const files = (await walk(contentDir)).sort();
+  const paths = files.map((f) => relative(contentDir, f).split(sep).join('/'));
+  const texts = await Promise.all(files.map((f) => readFile(f, 'utf8')));
+  return { paths, notes: Object.fromEntries(paths.map((p, i) => [p, texts[i]])) };
+}
 
-await writeFile(
-  join(contentDir, 'index.json'),
-  JSON.stringify({ generated: new Date().toISOString(), notes }, null, 2) + '\n',
-);
-console.log(`Indexed ${notes.length} notes → content/index.json`);
+export const bundleJson = ({ notes }) => JSON.stringify({ generated: new Date().toISOString(), notes });
+
+// Only write files when run directly, not when imported by the dev server.
+if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
+  const content = await readContent();
+  await writeFile(join(contentDir, 'index.json'), JSON.stringify({ generated: new Date().toISOString(), notes: content.paths }, null, 2) + '\n');
+  await writeFile(join(contentDir, 'bundle.json'), bundleJson(content));
+  console.log(`Indexed ${content.paths.length} notes → content/index.json, content/bundle.json`);
+}
