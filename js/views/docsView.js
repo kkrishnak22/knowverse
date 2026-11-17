@@ -162,6 +162,9 @@ function row(n, depth, hasKids, expanded, count) {
 // ---------- Article ----------
 
 function renderMissing(id) {
+  // The article is about to be replaced: stop its interactive blocks first.
+  unhydrate?.();
+  unhydrate = null;
   mini?.destroy();
   mini = null;
   fill($('#doc-context', root), );

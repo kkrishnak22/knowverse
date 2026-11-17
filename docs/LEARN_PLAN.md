@@ -71,6 +71,7 @@ Build once, reuse in every lesson. Any view that renders Markdown can host kit b
 | The computer reads your program (2D: processor, memory, screen; one click per small step) | `js/kit/machine.js` | ` ```kv-machine ` |
 | Robot game (drag instruction cards into a program, run one step at a time) | `js/kit/robot.js` | ` ```kv-robot ` |
 | Tea game (steps given in the wrong order; drag to reorder; a kitchen robot does each step literally) | `js/kit/tea.js` | ` ```kv-tea ` |
+| Mission Control (Mars rover in 3D: four missions unlock the definition of programming; Parsons ordering, plain English failing, predict-then-observe under a signal delay; ends with the player's program in Python) | `js/kit/rover.js`, `js/kit/rover/` | ` ```kv-rover ` |
 | Tooltips for the whole app (any `title` becomes a designed tooltip) | `js/tooltip.js` | — |
 | Questions and answers (no code) | `js/kit/predict.js` | ` ```kv-quiz ` |
 | Quick look panel for linked words (`[[word]]`), with "currently unavailable" for missing topics | `js/peek.js` | — |

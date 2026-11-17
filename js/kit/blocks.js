@@ -10,6 +10,7 @@ import { mountPredict, mountQuiz } from './predict.js';
 import { mountMachine } from './machine.js';
 import { mountRobot } from './robot.js';
 import { mountTea } from './tea.js';
+import { mountRover } from './rover.js';
 
 export const KIT = {
   lab: (el, src) => mountLab(el, src, { mode: 'lab' }),
@@ -19,6 +20,7 @@ export const KIT = {
   machine: mountMachine,
   robot: mountRobot,
   tea: mountTea,
+  rover: mountRover,
 };
 
 /** Mount every kit block inside `root`. Returns a function that tears them all down. */

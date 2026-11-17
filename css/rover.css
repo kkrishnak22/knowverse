@@ -1,0 +1,151 @@
+/* Mission Control (```kv-rover): the Mars rover game. Animations use transform and opacity
+   only, and no element inside the scrolling page uses filter or backdrop-filter. */
+
+.kvx { container-type: inline-size; position: relative; display: flex; flex-direction: column; border: 1px solid #2a2a33; border-radius: 22px; overflow: hidden; background: #0b0d14; color: var(--text); outline: none; }
+.kvx [hidden] { display: none !important; }
+.kvx-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid #242733; background: #0e1018; }
+.kvx-brand { font: 600 11.5px var(--mono); letter-spacing: 0.14em; color: #ff8a4c; }
+.kvx-brand b { color: var(--text); font-weight: 600; letter-spacing: 0.06em; }
+.kvx-head-right { display: flex; align-items: center; gap: 8px; }
+.kvx-dots { display: flex; gap: 5px; margin-right: 4px; }
+.kvx-dots i { width: 22px; height: 5px; border-radius: 3px; background: #2a2f3e; transition: var(--t-ui); }
+.kvx-dots i.on { background: #ff8a4c; }
+.kvx-dots i.done { background: #3ddc97; }
+.kvx-tool { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid #2c3242; background: #141824; color: var(--text-2); font-size: 12px; transition: var(--t-ui); cursor: pointer; }
+.kvx-tool svg { width: 14px; height: 14px; }
+.kvx-tool:hover { border-color: #3d4560; color: var(--text); }
+.kvx-tool.on { color: #7fd8ff; border-color: rgba(92, 200, 255, 0.45); }
+.kvx-def { padding: 12px 16px 14px; border-bottom: 1px solid #242733; background: #0c0e15; }
+.kvx-def small { font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
+.kvx-def-line { margin: 6px 0 0 !important; font-size: 16.5px; line-height: 2; color: var(--text); }
+.kvx-slot { display: inline-block; padding: 0 9px; border-radius: 7px; line-height: 1.7; color: transparent; border: 1px dashed #3a4256; background: repeating-linear-gradient(45deg, #171b28, #171b28 6px, #131622 6px, #131622 12px); user-select: none; }
+.kvx-slot.open { color: #ff9a5c; border: 1px solid rgba(255, 138, 76, 0.7); background: rgba(255, 138, 76, 0.1); font-weight: 600; user-select: text; }
+.kvx-slot.fresh { animation: kvx-pop 0.6s var(--ease); }
+@keyframes kvx-pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+.kvx-main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(250px, 1fr); }
+.kvx-stage { position: relative; min-height: 460px; background: #3a1d12; overflow: hidden; }
+.kvx-viewport { position: absolute; inset: 0; }
+.kvx-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.kvx-poster { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(120% 80% at 50% 0%, #c98a5c 0%, #7a3a20 45%, #2c140b 100%); color: #f6dcc5; font: 600 12px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; transition: opacity 0.6s var(--ease); }
+.kvx-poster span { position: relative; padding: 0 24px; text-align: center; }
+.kvx-poster-glow { position: absolute; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 230, 200, 0.55), transparent 70%); animation: kvx-breathe 2.4s ease-in-out infinite; }
+@keyframes kvx-breathe { 50% { transform: scale(1.25); opacity: 0.6; } }
+.kvx-poster.gone { opacity: 0; pointer-events: none; }
+.kvx-poster.gone .kvx-poster-glow { animation: none; }
+.kvx-legend { position: absolute; left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 6px 10px; border-radius: 10px; background: rgba(10, 8, 8, 0.62); font-size: 11.5px; color: #e9d6c6; pointer-events: none; }
+.kvx-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.kvx-key { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+.kvx-key.flag { background: #3ddc97; }
+.kvx-key.sample { background: #5cc8ff; transform: rotate(45deg); }
+.kvx-key.rock { background: #6b4a3c; border-radius: 50% 50% 40% 40%; }
+.kvx-bubble { position: absolute; left: 50%; top: 14px; max-width: 80%; padding: 8px 14px; border-radius: 12px; background: rgba(250, 247, 242, 0.96); color: #1a1410; font-weight: 600; font-size: 13.5px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); opacity: 0; transform: translate(-50%, -8px); transition: opacity 0.25s, transform 0.25s var(--ease); pointer-events: none; }
+.kvx-bubble.show { opacity: 1; transform: translate(-50%, 0); }
+.kvx-bubble.bad { background: #ffe1e1; color: #7a1020; }
+.kvx-bubble.ok { background: #dcfbe9; color: #0b5132; }
+.kvx-flash { position: absolute; inset: 0; background: radial-gradient(circle, transparent 35%, rgba(255, 50, 80, 0.45)); opacity: 0; pointer-events: none; }
+.kvx-flash.on { animation: kvx-flash 0.7s ease-out; }
+@keyframes kvx-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+.kvx-signal { position: absolute; left: 50%; top: 50%; width: min(86%, 420px); padding: 16px 18px; border-radius: 14px; border: 1px solid rgba(255, 138, 76, 0.5); background: rgba(12, 9, 8, 0.88); text-align: center; font: 700 13px var(--mono); letter-spacing: 0.12em; color: #ff9a5c; opacity: 0; transform: translate(-50%, -46%); transition: opacity 0.25s, transform 0.3s var(--ease); pointer-events: none; }
+.kvx-signal.show { opacity: 1; transform: translate(-50%, -50%); }
+.kvx-signal b { color: #fff; }
+.kvx-signal-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.kvx-planet { font: 600 10.5px var(--mono); letter-spacing: 0.1em; padding: 4px 8px; border-radius: 99px; }
+.kvx-planet.earth { color: #7fd8ff; border: 1px solid rgba(127, 216, 255, 0.5); }
+.kvx-planet.mars { color: #ff9a5c; border: 1px solid rgba(255, 154, 92, 0.5); }
+.kvx-beam { position: relative; flex: 1; height: 2px; container-type: inline-size; background: linear-gradient(90deg, rgba(127, 216, 255, 0.4), rgba(255, 154, 92, 0.4)); }
+.kvx-beam i { position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px #fff; transform: translateX(calc(var(--p, 0) * 100cqw)); }
+.kvx-pick { position: absolute; left: 50%; bottom: 52px; display: flex; align-items: center; gap: 10px; width: max-content; max-width: 92%; padding: 9px 10px 9px 14px; border-radius: 12px; border: 1px solid rgba(255, 201, 77, 0.6); background: rgba(16, 12, 6, 0.9); color: #ffe3a3; font-size: 13px; font-weight: 600; opacity: 0; transform: translate(-50%, 8px); transition: opacity 0.25s, transform 0.25s var(--ease); pointer-events: none; }
+.kvx-pick.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.kvx-pick span { display: inline-flex; align-items: center; gap: 8px; }
+.kvx-pick svg { width: 15px; height: 15px; }
+
+.kvx-side { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 14px; border-left: 1px solid #242733; background: #0d0f17; }
+.kvx-kicker { font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: #7fd8ff; }
+.kvx-title { margin: 0 !important; font-size: 18px !important; line-height: 1.3; color: var(--text); border: 0 !important; padding: 0 !important; }
+.kvx-brief { margin: 0 !important; font-size: 13.5px; line-height: 1.55; color: var(--text-2); }
+.kvx-hint { margin-top: 4px; font: 600 10.5px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+.kvx-controls { display: flex; flex-direction: column; gap: 6px; }
+.kvx-controls.locked .kvx-chip, .kvx-controls.locked .kvx-ins { opacity: 0.5; pointer-events: none; }
+.kvx-palette { display: flex; flex-wrap: wrap; gap: 6px; border-radius: 12px; }
+.kvx-chip, .kvx-ins { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border-radius: 9px; border: 1px solid #34405a; background: #1a2131; color: var(--text); font: 600 12.5px var(--mono); cursor: grab; transition: var(--t-ui); }
+.kvx-chip svg { width: 13px; height: 13px; color: #ff9a5c; }
+.kvx-chip:hover, .kvx-ins:hover:not(:disabled) { border-color: #4b5b80; background: #20293d; }
+.kvx-chip:active { transform: scale(0.97); }
+.kvx-ins { cursor: pointer; color: #7fd8ff; }
+.kvx-program { list-style: none; margin: 0 !important; padding: 7px !important; min-height: 52px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; border-radius: 12px; border: 1px dashed #34405a; background: rgba(0, 0, 0, 0.18); transition: var(--t-ui); }
+.kvx-program li { margin: 0 !important; }
+.kvx-program.over { border-color: #ff8a4c; background: rgba(255, 138, 76, 0.07); }
+.kvx-program li.running .kvx-chip { border-color: #ff8a4c; background: rgba(255, 138, 76, 0.25); transform: translateY(-2px); }
+.kvx-empty { align-self: center; padding: 0 4px; font-size: 12.5px; color: var(--text-3); }
+.kvx-mini { display: flex; gap: 6px; }
+.kvx-text { width: 100%; min-height: 150px; padding: 10px 12px; border-radius: 10px; border: 1px solid #2a3142; background: #080b12; color: #d7f7e6; font: 13.5px/1.7 var(--mono); resize: vertical; }
+.kvx-text:focus { outline: none; border-color: rgba(127, 216, 255, 0.6); }
+.kvx-code { margin: 0 !important; min-height: 150px; padding: 8px 0 !important; border-radius: 10px; border: 1px solid #2a3142; background: #080b12 !important; font: 13.5px/1.7 var(--mono); }
+.kvx-ln { padding: 0 12px; color: #d7f7e6; white-space: pre; }
+.kvx-ln span { display: inline-block; width: 22px; color: #4b5873; }
+.kvx-ln.on { background: rgba(255, 138, 76, 0.2); box-shadow: inset 3px 0 #ff8a4c; }
+.kvx-runrow { display: flex; gap: 6px; margin-top: 4px; }
+.kvx-run { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 38px; padding: 0 14px; border-radius: 10px; border: 0; background: linear-gradient(135deg, #ff8a4c, #ff6a3d); color: #1d0b03; font-weight: 700; letter-spacing: 0.03em; cursor: pointer; transition: var(--t-ui); }
+.kvx-run svg { width: 15px; height: 15px; }
+.kvx-run:disabled { opacity: 0.4; cursor: not-allowed; }
+.kvx-run:hover:not(:disabled) { transform: translateY(-1px); }
+.kvx-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid #2c3242; background: #151a26; color: var(--text); font-weight: 600; font-size: 13px; cursor: pointer; transition: var(--t-ui); }
+.kvx-btn svg { width: 14px; height: 14px; }
+.kvx-btn.small { height: 30px; padding: 0 10px; font-size: 12px; }
+.kvx-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.kvx-btn:hover:not(:disabled) { border-color: #3d4560; background: #1b2131; }
+.kvx-speed { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); }
+.kvx-speed input { flex: 1; accent-color: #ff8a4c; }
+.kvx-speed-label { width: 48px; text-align: right; }
+.kvx-log-head { margin-top: 2px; font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
+.kvx-log { flex: 1; min-height: 96px; max-height: 150px; overflow: auto; padding: 8px 10px; border-radius: 10px; border: 1px solid #222838; background: #07090f; font: 11.5px/1.6 var(--mono); color: #9fb1c9; }
+.kvx-log .ok { color: #3ddc97; }
+.kvx-log .bad { color: #ff6b85; }
+.kvx-log .acc { color: #ff9a5c; }
+.kvx .shake { animation: kvx-shake 0.4s; }
+@keyframes kvx-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+
+.kvx-overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 16px; background: rgba(6, 7, 11, 0.72); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+.kvx-overlay.show { opacity: 1; pointer-events: auto; }
+.kvx-card { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 520px; max-height: 100%; overflow: auto; padding: 20px; border-radius: 16px; border: 1px solid #2e3650; background: #121624; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); transform: translateY(10px) scale(0.985); transition: transform 0.3s var(--ease); }
+.kvx-overlay.show .kvx-card { transform: none; }
+.kvx-note { display: flex; align-items: center; gap: 8px; margin: 0 !important; font-size: 13px; color: #ffd27a; }
+.kvx-note svg { width: 15px; height: 15px; flex: none; }
+.kvx-actions { display: flex; gap: 8px; margin-top: 4px; }
+.kvx-report { list-style: none; margin: 0 0 4px !important; padding: 0 !important; display: grid; gap: 6px; font-size: 14px; }
+.kvx-report li { display: flex; align-items: center; gap: 8px; margin: 0 !important; color: var(--text-3); }
+.kvx-report li.ok { color: #3ddc97; }
+.kvx-report svg { width: 15px; height: 15px; }
+.kvx-q { margin: 0 !important; font-size: 16px; color: var(--text); }
+.kvx-options { display: grid; gap: 7px; border-radius: 12px; }
+.kvx-options .kv-option.right { border-color: #3ddc97; background: rgba(61, 220, 151, 0.12); color: #3ddc97; }
+.kvx-options .kv-option.wrong { border-color: #ff5470; background: rgba(255, 84, 112, 0.1); color: #ff8a9e; animation: kvx-shake 0.4s; }
+.kvx-why { margin: 0 !important; min-height: 20px; font-size: 13.5px; color: var(--text-2); }
+.kvx-why.ok b { color: #3ddc97; }
+.kvx-why.bad { color: #ff8a9e; }
+
+.kvx-final { display: none; flex-direction: column; gap: 12px; padding: 22px; }
+.kvx-final.show { display: flex; }
+.kvx-sentence { margin: 0 !important; font-size: 19px; line-height: 2.2; color: var(--text); }
+.kvx-blank { display: inline-block; min-width: 96px; padding: 0 6px; line-height: 1.4; border-bottom: 2px dashed #4b5873; color: #ff9a5c; font-weight: 700; }
+.kvx-blank.next { border-bottom-color: #7fd8ff; background: rgba(127, 216, 255, 0.08); }
+.kvx-blank.filled { border-bottom-color: #ff9a5c; animation: kvx-pop 0.5s var(--ease); }
+.kvx-bank { display: flex; flex-wrap: wrap; gap: 8px; border-radius: 12px; }
+.kvx-after { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.kvx-py { width: 100%; margin: 0 !important; padding: 12px 14px !important; border-radius: 10px; border: 1px solid #222838; background: #07090f !important; color: #d7f7e6; font: 13px/1.6 var(--mono); overflow: auto; }
+
+@container (max-width: 720px) {
+  .kvx-main { grid-template-columns: 1fr; }
+  .kvx-stage { min-height: 0; aspect-ratio: 16 / 10; }
+  .kvx-side { border-left: 0; border-top: 1px solid #242733; }
+  .kvx-legend { display: none; }
+}
+
+/* Stacked but roomy: controls on the left, telemetry on the right, so the game stays compact. */
+@container (max-width: 720px) and (min-width: 520px) {
+  .kvx-side { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); column-gap: 14px; row-gap: 8px; align-content: start; }
+  .kvx-side > * { grid-column: 1; }
+  .kvx-side > .kvx-log-head { grid-column: 2; grid-row: 1; }
+  .kvx-side > .kvx-log { grid-column: 2; grid-row: 2 / span 7; max-height: none; }
+}

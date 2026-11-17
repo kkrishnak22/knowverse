@@ -72,6 +72,21 @@ export function mount(el, param) {
 - Build DOM with `h()` / `fill()` from `js/ui.js`. Never assign user or note text to
   `innerHTML`; note Markdown goes through `renderMarkdown`, which escapes it.
 
+## 3a. 3D scenes and games
+
+Follow `js/kit/rover/` (Mission Control) for anything with a WebGL scene:
+
+- **Three parts:** rules as pure functions with tests (`missions.js`), the 3D world as a class with
+  `dispose()` (`scene.js`), and the DOM/UI as a kit block (`rover.js`).
+- **Load late:** the block imports its scene with `import()` inside `whenVisible`, so three.js is
+  never on the page-load path.
+- **Render on demand:** the scene registers one `frameLoop` ticker: `ACTIVE` while something
+  animates, `AMBIENT` for idle motion, `IDLE` when an `IntersectionObserver` says it is off screen.
+- **No image files:** terrain, textures and models are generated in code from seeded noise
+  (`rover/noise.js`), so the look is deterministic and costs no downloads.
+- **Inspect renders at full resolution:** render to a large canvas and read it back with
+  `toDataURL` in the same task (the pane is too small to judge detail by screenshot).
+
 ## 4. Reuse before writing
 
 Before adding a helper, search for one. Shared code lives in exactly one place:

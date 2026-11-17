@@ -4,12 +4,15 @@ type: hub
 description: Programming is telling a computer exactly what to do, one step at a time.
 tags: [programming]
 status: published
-updated: 2026-11-16
+updated: 2026-11-17
 ---
 
-Programming is telling a computer exactly what to do, one step at a time.
+Programming is telling a computer exactly what to do, one step at a time. Start with a mission: a rover on Mars that does only what you tell it.
 
-Try it. Give the robot its steps.
+```kv-rover
+```
+
+Now try the same idea on Earth. Give the robot its steps.
 
 ```kv-robot
 title: Take the robot to the star
@@ -65,6 +68,8 @@ The kitchen robot never fixed your steps. It boiled an empty kettle if you told 
 
 ## Courses
 
-- [[Python]] is the first course. It starts from zero.
+**[[Python]]** — the first course. It starts from zero, and every lesson runs real Python right in the browser. **2 modules · 10 lessons.** [[Python|Start the course →]]
 
-Courses for [[Java]], [[Data structures]] and [[Web development]] come later.
+Courses on Java, Data structures and Web development come later.
+
+Ready? [[What is a program?|Start lesson 1 →]]

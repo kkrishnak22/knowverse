@@ -18,7 +18,7 @@ A static knowledge-multiverse site: no build step, plain ES modules, served as-i
 - Screens are in `js/views/` and export `mount(el, param) → cleanup` and optionally `update(param)`. Routes are in `js/app.js` (`ROUTES`).
 - Notes are Markdown with flat YAML frontmatter in `content/<universe>/…`. Hierarchy: hub → category → topic → subtopic, via `parent:`. After adding or removing notes run `npm run index`.
 - Third-party code is bundled into `vendor/` with esbuild (`npm run vendor`, `npm run vendor:three`). Pyodide is the exception: it loads from jsDelivr at runtime (too large to vendor).
-- CSS: `css/styles.css` (app), `css/multiverse.css` (home), `css/learn.css` (Learn + kit). Design tokens are the `:root` variables in `styles.css`.
+- CSS: `css/styles.css` (app), `css/multiverse.css` (home), `css/learn.css` (Learn + kit), `css/rover.css` (the Mission Control game). Design tokens are the `:root` variables in `styles.css`.
 
 ## Learn
 
