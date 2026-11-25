@@ -2,6 +2,12 @@
 // Notes come from two places:
 //   1. Markdown files listed in content/index.json (the GitHub-backed source of truth)
 //   2. Notes approved in the Architect but saved only in this browser (localStorage)
+//
+// A note can have a Telugish version next to it: <name>.te.md (frontmatter: title, description;
+// then the body). It is attached to the English note as note.te and is never a note of its own.
+// inLang(note) gives the note in the current language.
+
+import { getLang } from './i18n.js';
 
 const KEYS = {
   local: 'snu.localNotes',
@@ -128,6 +134,18 @@ export function serializeNote(f) {
 /** Path (without .md) a note with these fields should live at. */
 export const noteIdFor = (f) =>
   [f.universe || vault.universe, f.type !== 'hub' && f.category && slugify(f.category), slugify(f.title)].filter(Boolean).join('/');
+
+/** A note's Telugish version: only the words change; the note's place in the vault does not. */
+function makeTranslation(raw) {
+  const { data, body } = parseFrontmatter(raw);
+  return { title: data.title ? String(data.title) : '', description: data.description ? String(data.description) : '', body };
+}
+
+/** The note's title, description and body in a language (English when there is no translation). */
+export function inLang(note, lang = getLang()) {
+  if (!note || lang !== 'te' || !note.te) return note;
+  return { ...note, title: note.te.title || note.title, description: note.te.description || note.description, body: note.te.body || note.body, lang };
+}
 
 function makeNote(id, raw, source) {
   const { data, body } = parseFrontmatter(raw);
@@ -281,7 +299,13 @@ export async function loadVault() {
   const saved = getUi().universe;
   vault.universe = vault.universes.some((u) => u.id === saved) ? saved : vault.universes[0]?.id || DEFAULT_UNIVERSE;
   try {
-    for (const [path, text] of Object.entries(await noteTexts)) notes.push(makeNote(path.replace(/\.md$/i, ''), text, 'repo'));
+    const translations = {};
+    for (const [path, text] of Object.entries(await noteTexts)) {
+      const id = path.replace(/\.md$/i, '');
+      if (id.endsWith('.te')) translations[id.slice(0, -3)] = text;
+      else notes.push(makeNote(id, text, 'repo'));
+    }
+    for (const note of notes) if (translations[note.id]) note.te = makeTranslation(translations[note.id]);
   } catch (err) {
     vault.error = err.message;
   }

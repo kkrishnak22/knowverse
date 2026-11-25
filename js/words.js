@@ -51,6 +51,26 @@ export function termify(text, scope = new Set()) {
   return findTerms(String(text), scope).map((s) => (s.id ? termButton(s.id, s.text) : s.text));
 }
 
+// Prose is underlined everywhere except code, links, headings, buttons and kit blocks.
+const SKIP = 'pre, code, kbd, a, button, h1, h2, h3, h4, .wikilink, .kv-term, .kv-block, svg';
+
+/**
+ * Underline the glossary words in rendered prose (a lesson or a note), each once per `scope`.
+ * Run it before kit blocks are hydrated.
+ */
+export function termifyProse(root, scope = new Set()) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => (n.nodeValue.trim() && !n.parentElement?.closest(SKIP) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT),
+  });
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    const parts = termify(node.nodeValue, scope);
+    if (parts.some((p) => typeof p !== 'string')) node.replaceWith(...parts);
+  }
+  return scope;
+}
+
 /** The element "See it" should point at, if it is on screen right now. */
 function spotFor(el, g) {
   if (!g.see) return null;

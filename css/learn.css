@@ -132,7 +132,7 @@ a.strip-card:hover { border-color: var(--line-2); background: var(--bg-2); }
 .kv-status.warn { color: var(--warn); }
 
 .kv-editor { position: relative; display: flex; flex: 1; min-height: 190px; font: 13.5px/1.7 var(--mono); overflow: hidden; }
-.kv-gutter { flex: none; width: 42px; padding: 12px 0; text-align: right; color: #3b4258; user-select: none; }
+.kv-gutter { flex: none; width: 42px; padding: 12px 0; text-align: right; color: var(--text-3); user-select: none; }
 .kv-gutter div { padding-right: 10px; height: 1.7em; }
 .kv-gutter .active { color: var(--accent); }
 .kv-gutter .error { color: var(--danger); }
@@ -149,7 +149,7 @@ a.strip-card:hover { border-color: var(--line-2); background: var(--bg-2); }
 .kv-console { border-top: 1px solid var(--line); background: #070a11; min-height: 92px; max-height: 180px; overflow: auto; }
 .kv-console-head { padding: 7px 16px 0; font: 600 10.5px var(--sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
 .kv-console-out { margin: 0; padding: 6px 16px 10px; font: 13px/1.6 var(--mono); color: #e7eaf3; white-space: pre-wrap; }
-.kv-console-out.empty::before { content: 'Nothing printed yet'; color: #3b4258; font-style: italic; }
+.kv-console-out.empty::before { content: 'Nothing printed yet'; color: var(--text-3); font-style: italic; }
 .kv-console-err:empty { display: none; }
 .kv-console-err { margin: 0 12px 12px; padding: 10px 12px; border-radius: 10px; background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); color: #fecaca; font-size: 12.5px; }
 .kv-console-err b { color: #fca5a5; }
@@ -245,12 +245,12 @@ a.strip-card:hover { border-color: var(--line-2); background: var(--bg-2); }
 .guide:not(:disabled) { position: relative; }
 .guide:not(:disabled)::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.55); animation: guide 1.6s ease-out infinite;
+  box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.55); animation: guide 1.6s ease-out 5; /* a few pulses, then rest: nothing nags forever */
 }
 @keyframes guide { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(var(--guide-grow, 1.14)); } }
 /* Large targets grow by a smaller factor so the ring spreads about as far as it does on a button. */
 .kvr-palette.guide, .kvr-program.guide { --guide-grow: 1.045; }
-.kv-edit-hint { position: absolute; right: 12px; top: 56px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; font-size: 11.5px; color: var(--accent); background: rgba(94, 234, 212, 0.1); border: 1px solid rgba(94, 234, 212, 0.3); pointer-events: none; animation: guide 1.6s ease-in-out infinite; z-index: 2; }
+.kv-edit-hint { position: absolute; right: 12px; top: 56px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 99px; font-size: 11.5px; color: var(--accent); background: rgba(94, 234, 212, 0.1); border: 1px solid rgba(94, 234, 212, 0.3); pointer-events: none; animation: guide 1.6s ease-in-out 5; z-index: 2; }
 .kv-edit-hint svg { width: 13px; height: 13px; }
 
 /* Hover label inside the 3D scene */
@@ -273,19 +273,29 @@ a.strip-card:hover { border-color: var(--line-2); background: var(--bg-2); }
 
 /* ---------- Collapse / expand ---------- */
 
-.docs-view.tree-collapsed { grid-template-columns: minmax(0, 1fr) 300px; }
-.docs-view.ctx-collapsed { grid-template-columns: 272px minmax(0, 1fr); }
-.docs-view.tree-collapsed.ctx-collapsed { grid-template-columns: minmax(0, 1fr); }
-.docs-view.tree-collapsed .tree-pane, .docs-view.ctx-collapsed .context-pane { display: none; }
+/* Side panels slide open and shut instead of snapping. The panel widths are registered custom
+   properties, so they can be animated; the grid, the handles and the article follow them.
+   This is the one place we animate layout (see docs/ENGINEERING.md §2a): a single click, 0.26s,
+   never while scrolling. The panel's contents keep their width and fade, so nothing squashes. */
+@property --tree-w { syntax: '<length>'; inherits: true; initial-value: 272px; }
+@property --ctx-w { syntax: '<length>'; inherits: true; initial-value: 300px; }
+.docs-view { grid-template-columns: var(--tree-w) minmax(0, 1fr) var(--ctx-w); transition: --tree-w 0.26s var(--ease), --ctx-w 0.26s var(--ease); }
+.docs-view.tree-collapsed { --tree-w: 0px; }
+.docs-view.ctx-collapsed { --ctx-w: 0px; }
+.tree-pane, .context-pane { overflow: hidden; transition: opacity 0.2s var(--ease), visibility 0s; }
+.tree-pane > * { min-width: 240px; }
+.context-pane > * { min-width: 280px; }
+.docs-view.tree-collapsed .tree-pane, .docs-view.ctx-collapsed .context-pane { border-color: transparent; opacity: 0; visibility: hidden; transition: opacity 0.16s ease-out, visibility 0s 0.26s; }
+.docs-view .article { transition: max-width 0.26s var(--ease); }
 .pane-head .icon-btn { flex: none; width: 28px; height: 28px; }
 .pane-head .icon-btn svg { width: 15px; height: 15px; }
 @media (max-width: 1180px) {
-  .docs-view.ctx-collapsed { grid-template-columns: 240px minmax(0, 1fr); }
-  .docs-view.tree-collapsed, .docs-view.tree-collapsed.ctx-collapsed { grid-template-columns: minmax(0, 1fr); }
+  .docs-view { --ctx-w: 0px; }
 }
 @media (max-width: 900px) {
   .pane-toggle { display: none; }
-  .docs-view.tree-collapsed .tree-pane { display: flex; }
+  .docs-view, .docs-view.tree-collapsed { grid-template-columns: 1fr; }
+  .docs-view.tree-collapsed .tree-pane { opacity: 1; visibility: visible; }
 }
 .module-tools { display: flex; gap: 6px; justify-content: flex-end; margin-top: 18px; }
 .module-tools + .module { margin-top: 6px; }
@@ -313,7 +323,7 @@ details[open] > summary .module-twisty { transform: rotate(90deg); }
 .kvm-cpu.busy .kvm-reader-text { border-style: solid; border-color: rgba(124, 156, 255, 0.5); }
 .kvm-cpu.lit .kvm-reader-text::after { content: ''; position: absolute; top: 0; bottom: 0; width: 40px; left: -40px; background: linear-gradient(90deg, transparent, rgba(124, 156, 255, 0.45), transparent); animation: scan 0.9s ease-out; }
 @keyframes scan { to { left: 100%; } }
-.kvm-idle, .kvm-empty { color: #3b4258; font-style: italic; font-family: var(--sans); font-size: 12.5px; }
+.kvm-idle, .kvm-empty { color: var(--text-3); font-style: italic; font-family: var(--sans); font-size: 12.5px; }
 .kvm-mem-list { display: flex; flex-direction: column; gap: 6px; min-height: 84px; }
 .kvm-slot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-radius: 8px; background: rgba(94, 234, 212, 0.07); border: 1px solid rgba(94, 234, 212, 0.22); font: 13px var(--mono); }
 .kvm-name { color: #e7eaf3; } .kvm-val { color: #5eead4; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -329,7 +339,7 @@ details[open] > summary .module-twisty { transform: rotate(90deg); }
 .kvm-code { display: flex; flex-direction: column; border-left: 1px solid var(--line); background: #090c14; min-width: 0; }
 .kvm-lines { padding: 12px 8px; font: 13.5px/1.7 var(--mono); color: #dfe4f2; overflow-x: auto; }
 .kvm-line { display: flex; gap: 10px; padding: 3px 8px; border-radius: 7px; white-space: pre; transition: background 0.25s, opacity 0.25s; border-left: 2px solid transparent; }
-.kvm-num { width: 20px; text-align: right; color: #3b4258; flex: none; }
+.kvm-num { width: 20px; text-align: right; color: var(--text-3); flex: none; }
 .kvm-line.active { background: rgba(124, 156, 255, 0.16); border-left-color: #7c9cff; }
 .kvm-line.active .kvm-num { color: #7c9cff; }
 .kvm-line.done { opacity: 0.45; }
@@ -415,13 +425,13 @@ details[open] > summary .module-twisty { transform: rotate(90deg); }
 /* ---------- Handles to collapse the left and right bars in Docs ---------- */
 
 .docs-view { --tree-w: 272px; --ctx-w: 300px; }
-.pane-handle { position: absolute; z-index: 12; top: 50%; width: 22px; height: 44px; margin-top: -22px; display: grid; place-items: center; border-radius: 8px; color: var(--text-2); background: var(--bg-2); border: 1px solid var(--line-2); box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.7); opacity: 0.55; transition: opacity 0.15s, background 0.15s, color 0.15s, left 0.2s var(--ease), right 0.2s var(--ease); }
+.pane-handle { position: absolute; z-index: 12; top: 50%; width: 22px; height: 44px; margin-top: -22px; display: grid; place-items: center; border-radius: 8px; color: var(--text-2); background: var(--bg-2); border: 1px solid var(--line-2); box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.7); opacity: 0.55; transition: opacity 0.15s, background 0.15s, color 0.15s; }
 .pane-handle:hover, .pane-handle:focus-visible { opacity: 1; color: var(--accent); background: var(--bg-3); }
 .pane-handle svg { width: 14px; height: 14px; transition: transform 0.2s var(--ease); }
-.pane-handle.left { left: calc(var(--tree-w) - 11px); }
-.pane-handle.right { right: calc(var(--ctx-w) - 11px); }
-.tree-collapsed .pane-handle.left { left: 6px; opacity: 0.9; }
-.ctx-collapsed .pane-handle.right { right: 6px; opacity: 0.9; }
+/* The handles ride on the panel edge as it moves (--tree-w / --ctx-w animate), stopping 6px in. */
+.pane-handle.left { left: max(6px, calc(var(--tree-w) - 11px)); }
+.pane-handle.right { right: max(6px, calc(var(--ctx-w) - 11px)); }
+.tree-collapsed .pane-handle.left, .ctx-collapsed .pane-handle.right { opacity: 0.9; }
 .tree-collapsed .pane-handle.left svg, .ctx-collapsed .pane-handle.right svg { transform: rotate(180deg); }
 @media (max-width: 1180px) { .docs-view { --tree-w: 240px; } .pane-handle.right { display: none; } }
 @media (max-width: 900px) { .pane-handle { display: none; } }
@@ -495,3 +505,32 @@ details[open] > summary .module-twisty { transform: rotate(90deg); }
 /* "See it": a brief glowing outline on the thing the word names. */
 .kv-spot { outline: 2px solid #ffd27a !important; outline-offset: -2px; animation: kv-spot 1.9s ease-out forwards; }
 @keyframes kv-spot { 0%, 65% { outline-color: #ffd27a; } 100% { outline-color: transparent; } }
+
+/* Shown on a lesson when Telugish is on but this lesson has no Telugish version yet. */
+.lesson-lang-note { display: inline-flex; align-items: center; gap: 8px; margin: 10px 0 0; padding: 6px 12px; border-radius: 9px; border: 1px solid rgba(255, 210, 122, 0.35); background: rgba(255, 210, 122, 0.08); color: #ffd27a; font-size: 13px; }
+.lesson-lang-note svg { width: 14px; height: 14px; }
+
+/* ---------- Use the room: when side panels are closed the page widens ----------
+   Labs, games, code and tables take the full width; running text keeps a comfortable line
+   length (about 80 letters), so wide pages stay easy to read. */
+.docs-view:is(.tree-collapsed, .ctx-collapsed) .article { max-width: 1060px; }
+.docs-view.tree-collapsed.ctx-collapsed .article { max-width: 1320px; }
+.docs-view:is(.tree-collapsed, .ctx-collapsed) .prose > :is(p, ul, ol, blockquote, h2, h3, h4),
+.docs-view:is(.tree-collapsed, .ctx-collapsed) .article-head .lead { max-width: 66ch; }
+.lesson-panel, .lesson-foot { max-width: none; }
+.lesson-panel .prose > :is(p, ul, ol, blockquote, h2, h3, h4), .lesson-intro > :is(p, ul, ol) { max-width: 66ch; }
+
+/* Course modules ease open and shut instead of snapping (browsers that can animate to auto height;
+   others simply open at once). A one-off click, so animating height is allowed here. */
+@supports (interpolate-size: allow-keywords) {
+  .learn-view { interpolate-size: allow-keywords; }
+  details.module::details-content { block-size: 0; overflow: hidden; transition: block-size 0.28s var(--ease), content-visibility 0.28s allow-discrete; }
+  details.module[open]::details-content { block-size: auto; }
+}
+
+/* A lab that has not been asked for yet shows no spinner: nothing is loading. */
+.kv-overlay.waiting .orbit { display: none; }
+
+/* Comfortable reading width for running text everywhere (about 80 letters a line);
+   labs, games, code and tables still use the full width. */
+.prose > :is(p, ul, ol, blockquote, .callout), .article-head .lead, .lesson-head .lead { max-width: 66ch; }

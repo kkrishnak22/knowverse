@@ -70,6 +70,32 @@ print("Add tea leaves")
 > The computer follows the order you **wrote**, even when it makes no sense for tea. It doesn't know anything about tea.
 ```
 
+Next: exact means exact. One letter is wrong in line 2.
+
+```kv-predict
+print("Boil water")
+Print("Add tea leaves")
+---
+? What happens when this runs?
+- Both lines print: Python can see what you meant
++ Line 1 prints, then Python stops with an error at line 2
+- Nothing prints at all
+> Python runs line 1 normally. On line 2 it finds `Print` with a capital P, a name it doesn't know, and stops with a NameError. The computer never guesses what you meant.
+```
+
+Last: a program stops when it runs out of steps.
+
+```kv-predict
+print("Boil water")
+print("Add tea leaves")
+---
+? Tea also needs to be poured. What does the computer do after line 2?
+- It pours the tea, because that comes next in a recipe
++ It stops: there are no more lines
+- It asks you what to do next
+> A program stops when it runs out of lines. It never adds a step you didn't write.
+```
+
 ## Remember
 
 > [!recap] In one breath

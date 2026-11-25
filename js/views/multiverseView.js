@@ -4,7 +4,7 @@
 
 import { vault, universeStats } from '../store.js';
 import { ForceGraph } from '../graph.js';
-import { $, h, fill, icon } from '../ui.js';
+import { $, h, fill, icon, count } from '../ui.js';
 
 const ZOOM_OPENS_PANEL = 1.7; // zooming in past this opens the nearest universe's panel
 const ZOOM_CLOSES_PANEL = 1.15; // zooming back out past this closes a panel opened that way
@@ -144,7 +144,7 @@ export function mount(el) {
     h('div', { class: 'hud hud-tl' },
       h('span', { class: 'mv-eyebrow' }, vault.tagline),
       h('h1', {}, 'Explore knowledge across universes'),
-      h('p', { class: 'hud-stats' }, `${vault.universes.length} universes · ${vault.all.length} notes`),
+      h('p', { class: 'hud-stats' }, `${count(vault.universes.length, 'universe')} · ${count(vault.all.length, 'note')}`),
       h('div', { class: 'hud-filter-wrap' }, icon('search'), h('input', { class: 'hud-filter', type: 'text', placeholder: 'Highlight universes…', spellcheck: 'false', 'aria-label': 'Highlight universes',
         oninput: (e) => {
           const q = e.target.value.trim().toLowerCase();
@@ -193,7 +193,7 @@ export function mount(el) {
     placed.map(({ u, p }) => ({
       id: u.id,
       title: u.name,
-      sub: stats.get(u.id).notes ? `${stats.get(u.id).notes} notes` : 'Universe',
+      sub: stats.get(u.id).notes ? count(stats.get(u.id).notes, 'note') : 'Universe',
       type: 'universe',
       category: '',
       color: u.accent,

@@ -3,7 +3,7 @@
 import { vault, on, colorOf, backlinks, ancestors, isLocalOnly, currentUniverse } from '../store.js';
 import { ForceGraph, graphData } from '../graph.js';
 import { renderMarkdown } from '../markdown.js';
-import { $, h, fill, icon } from '../ui.js';
+import { $, h, fill, icon, count } from '../ui.js';
 import { draftFromNote } from './architectView.js';
 
 let graph = null;
@@ -77,7 +77,7 @@ function load() {
   $('#graph-title', root).textContent = `${currentUniverse().name} Universe`;
   if (selectedId && !vault.byId.has(selectedId)) select(null);
   $('#graph-stats', root).textContent = vault.notes.length
-    ? `${vault.notes.length} notes · ${vault.links.length} links · ${vault.categories.length} categories`
+    ? `${count(vault.notes.length, 'note')} · ${count(vault.links.length, 'link')} · ${count(vault.categories.length, 'category', 'categories')}`
     : 'No notes yet';
   renderLegend();
   root.querySelector('.graph-empty')?.remove();

@@ -68,8 +68,9 @@
 .kvx-beam { position: relative; flex: 1; height: 2px; container-type: inline-size; background: linear-gradient(90deg, rgba(127, 216, 255, 0.4), rgba(255, 154, 92, 0.4)); }
 .kvx-beam i { position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px #fff; transform: translateX(calc(var(--p, 0) * 100cqw)); }
 .kvx-pick { position: absolute; z-index: 4; left: 50%; top: 14px; display: flex; align-items: center; gap: 10px; width: max-content; max-width: 92%; padding: 9px 10px 9px 14px; border-radius: 12px; border: 1px solid rgba(255, 201, 77, 0.6); background: rgba(16, 12, 6, 0.9); color: #ffe3a3; font-size: 13px; font-weight: 600; opacity: 0; transform: translate(-50%, -8px); transition: opacity 0.25s, transform 0.25s var(--ease); pointer-events: none; }
-.kvx-stage:has(.kvx-pick.show) .kvx-legend { opacity: 0; }
-.kvx-legend { transition: opacity 0.2s; }
+.kvx-stage:has(.kvx-pick.show) .kvx-legend { opacity: 0; transition: none; }
+/* The legend gets out of the way of messages: gone at once when one appears, back only after it has faded. */
+.kvx-legend { transition: opacity 0.2s ease 0.3s; }
 .kvx-pick.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .kvx-pick span { display: inline-flex; align-items: center; gap: 8px; }
 .kvx-pick svg { width: 15px; height: 15px; }
@@ -207,38 +208,53 @@ html.kvx-locked, html.kvx-locked body { overflow: hidden; }
 .kvx-log { scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #2a3142 transparent; }
 
 /* ---------- How-to-play demo ---------- */
-.kvx-cursor { position: absolute; left: 0; top: 0; z-index: 9; width: 26px; height: 26px; margin: -3px 0 0 -5px; pointer-events: none; opacity: 0; transition: opacity 0.2s; will-change: transform; }
+.kvx-dim { position: absolute; inset: 0; z-index: 6; background: rgba(6, 9, 16, 0.42); opacity: 0; pointer-events: none; transition: opacity 0.3s var(--ease); }
+.kvx-dim.show { opacity: 1; }
+.kvx-spotlight { position: absolute; left: 0; top: 0; z-index: 7; border-radius: 14px; border: 2px solid rgba(127, 216, 255, 0.85); box-shadow: 0 0 0 1px rgba(127, 216, 255, 0.28), 0 0 28px rgba(127, 216, 255, 0.25); opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.35s var(--ease), width 0.35s var(--ease), height 0.35s var(--ease); will-change: transform; }
+.kvx-spotlight.show { opacity: 1; }
+.kvx-cursor { position: absolute; left: 0; top: 0; z-index: 10; width: 26px; height: 26px; margin: -3px 0 0 -5px; pointer-events: none; opacity: 0; transition: opacity 0.2s; will-change: transform; }
 .kvx-cursor.show { opacity: 1; }
 .kvx-cursor svg { display: block; }
 .kvx-cursor i { position: absolute; left: -9px; top: -9px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ffffff; opacity: 0; }
 .kvx-cursor.press i { animation: kvx-ripple 0.45s ease-out; }
 @keyframes kvx-ripple { from { opacity: 0.9; transform: scale(0.4); } to { opacity: 0; transform: scale(1.7); } }
 /* No transition: the chip's own transform transition would make the copy trail behind the cursor. */
-.kvx-ghost { position: absolute !important; left: 0; top: 0; z-index: 8; margin: 0 !important; pointer-events: none; transition: none !important; border-color: #ff8a4c !important; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5); will-change: transform; }
-.kvx-demo { position: absolute; left: 50%; bottom: 14px; z-index: 6; display: flex; align-items: center; gap: 10px; width: max-content; max-width: 92%; padding: 7px 7px 7px 14px; border-radius: 12px; border: 1px solid rgba(127, 216, 255, 0.5); background: rgba(10, 13, 21, 0.92); color: #e6f6ff; font-size: 13.5px; font-weight: 600; opacity: 0; transform: translate(-50%, 6px); transition: opacity 0.25s, transform 0.25s var(--ease); pointer-events: none; }
+.kvx-ghost { position: absolute !important; left: 0; top: 0; z-index: 9; margin: 0 !important; pointer-events: none; transition: none !important; border-color: #ff8a4c !important; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5); will-change: transform; }
+.kvx-demo { position: absolute; left: 50%; bottom: 14px; z-index: 6; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; width: max-content; max-width: 94%; padding: 7px 9px 7px 14px; border-radius: 12px; border: 1px solid rgba(127, 216, 255, 0.5); background: rgba(10, 13, 21, 0.94); color: #e6f6ff; font-size: 13px; font-weight: 600; opacity: 0; transform: translate(-50%, 6px); transition: opacity 0.25s, transform 0.25s var(--ease); pointer-events: none; }
 .kvx-demo b { font: 700 10.5px var(--mono); letter-spacing: 0.12em; color: #7fd8ff; }
+.kvx-demo-step { padding: 2px 7px; border-radius: 999px; background: rgba(127, 216, 255, 0.14); color: #bfeaff; font: 700 11px var(--mono); }
+.kvx-demo-text { color: #d6ecfa; font-size: 12.5px; }
 .kvx.demoing .kvx-demo { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .kvx-shield { position: absolute; inset: 0; z-index: 4; display: none; cursor: default; }
 .kvx.demoing .kvx-shield { display: block; }
-.kvx.demoing .kvx-demo { z-index: 7; }
+.kvx.demoing .kvx-demo { z-index: 8; }
 
 /* The explanation that rides beside the demo cursor. Positioned with transform by demo.js. */
-.kvx-tip { position: absolute; left: 0; top: 0; z-index: 10; width: max-content; max-width: min(300px, 70%); padding: 9px 12px; border-radius: 11px; border: 1px solid rgba(127, 216, 255, 0.55); background: #0f1626; color: #eaf7ff; font-size: 13.5px; font-weight: 600; line-height: 1.4; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5); pointer-events: none; opacity: 0; transition: opacity 0.2s; will-change: transform; }
+.kvx-tip { position: absolute; left: 0; top: 0; z-index: 11; width: max-content; max-width: min(320px, 76%); padding: 10px 13px 12px; border-radius: 12px; border: 1px solid rgba(127, 216, 255, 0.6); background: #0f1626; color: #eaf7ff; font-size: 13.5px; font-weight: 600; line-height: 1.45; box-shadow: 0 16px 38px rgba(0, 0, 0, 0.55); pointer-events: none; opacity: 0; overflow: hidden; transition: opacity 0.2s; will-change: transform; }
 .kvx-tip.show { opacity: 1; }
 .kvx-tip.fresh { animation: kvx-tip-in 0.3s var(--ease); }
 @keyframes kvx-tip-in { from { opacity: 0.2; } }
+.kvx-tip-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.kvx-tip-step { font: 700 10.5px var(--mono); letter-spacing: 0.1em; color: #7fd8ff; text-transform: uppercase; }
+.kvx-tip-key { padding: 1px 7px; border-radius: 6px; border: 1px solid rgba(255, 138, 76, 0.55); background: rgba(255, 138, 76, 0.14); color: #ffb98f; font: 700 11px var(--mono); }
+.kvx-tip-body { color: #f0f8ff; }
+.kvx-tip-hint { margin-top: 6px; font-size: 11.5px; font-weight: 500; color: #9ecce8; }
+.kvx-tip-hint:empty { display: none; }
+.kvx-tip-track { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(127, 216, 255, 0.14); }
+.kvx-tip-bar { display: block; width: 100%; height: 100%; background: #7fd8ff; transform-origin: left center; transform: scaleX(0); will-change: transform; }
+.kvx-tip.paused .kvx-tip-bar { background: #ffc94d; }
 
 /* ---------- On-screen game controls: arrow pad (bottom left) and actions (bottom right) ---------- */
 .kvx-pad { position: absolute; left: 16px; bottom: 16px; z-index: 3; width: 132px; height: 132px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.14); background: radial-gradient(circle, rgba(16, 12, 10, 0.5) 0%, rgba(16, 12, 10, 0.72) 70%); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
-.kvx-pad button { position: absolute; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(30, 24, 22, 0.9); color: #fff1e6; cursor: pointer; transition: var(--t-ui); touch-action: manipulation; }
+.kvx-pad button { position: absolute; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(30, 24, 22, 0.9); color: #fff1e6; cursor: pointer; transition: var(--t-ui); touch-action: manipulation; }
 .kvx-pad button svg { width: 20px; height: 20px; }
 .kvx-pad button:hover:not(:disabled) { border-color: #ff8a4c; color: #ff9a5c; }
 .kvx-pad button:active:not(:disabled) { transform: scale(0.92); }
 .kvx-pad button:disabled { opacity: 0.35; cursor: not-allowed; }
-.kvx-pad .up { left: 44px; top: 4px; }
-.kvx-pad .left { left: 4px; top: 44px; }
-.kvx-pad .right { right: 4px; top: 44px; }
-.kvx-pad .down { left: 50px; bottom: 6px; width: 32px; height: 32px; border-radius: 50%; }
+.kvx-pad .up { left: 45px; top: 3px; } /* the four buttons touch but never overlap */
+.kvx-pad .left { left: 3px; top: 45px; }
+.kvx-pad .right { right: 3px; top: 45px; }
+.kvx-pad .down { left: 50px; bottom: 4px; width: 32px; height: 32px; border-radius: 50%; }
 .kvx-pad .down svg { width: 15px; height: 15px; }
 .kvx-pad-hub { position: absolute; left: 56px; top: 56px; width: 20px; height: 20px; border-radius: 50%; background: rgba(255, 138, 76, 0.35); border: 1px solid rgba(255, 138, 76, 0.6); }
 .kvx-act { position: absolute; right: 16px; bottom: 16px; z-index: 3; display: flex; align-items: flex-end; gap: 10px; }
@@ -326,3 +342,103 @@ html.kvx-locked, html.kvx-locked body { overflow: hidden; }
 .kvx-words li svg { grid-column: 2; grid-row: 1; width: 14px; height: 14px; color: #3ddc97; }
 .kvx-words li.seen { border-color: rgba(61, 220, 151, 0.22); }
 .kvx-poster[data-failed] .kvx-poster-glow { display: none; }
+
+/* ---------- Cover: the light first screen. Nothing heavy loads until Play ---------- */
+.kvx-cover { display: none; }
+.kvx.covered .kvx-cover { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); min-height: 420px; }
+.kvx.covered .kvx-def, .kvx.covered .kvx-main, .kvx.covered .kvx-tabs, .kvx.covered .kvx-head-right { display: none; }
+.kvx-cover-art { position: relative; overflow: hidden; background: linear-gradient(180deg, #f2b38a 0%, #c8693f 38%, #7a3a20 70%, #3a180c 100%); }
+.kvx-cover-art i { position: absolute; display: block; }
+.kvx-cover-art .sun { left: 62%; top: 15%; width: 76px; height: 76px; border-radius: 50%; background: radial-gradient(circle, #fff4e4 0%, rgba(255, 228, 196, 0.55) 42%, transparent 70%); }
+.kvx-cover-art .ridge { left: -6%; right: -6%; bottom: 0; }
+.kvx-cover-art .far { bottom: 30%; height: 32%; background: #a14d2c; opacity: 0.8; clip-path: polygon(0 72%, 12% 40%, 26% 62%, 40% 26%, 55% 56%, 70% 30%, 84% 54%, 100% 36%, 100% 100%, 0 100%); }
+.kvx-cover-art .near { height: 46%; background: linear-gradient(#6e2f17, #2e1209); clip-path: polygon(0 40%, 18% 22%, 35% 44%, 52% 18%, 68% 40%, 85% 26%, 100% 42%, 100% 100%, 0 100%); }
+.kvx-cover-art .flag { left: 30%; bottom: 31%; width: 3px; height: 46px; border-radius: 2px; background: #eadbcf; }
+.kvx-cover-art .flag::after { content: ''; position: absolute; left: 3px; top: 0; width: 24px; height: 15px; background: #3ddc97; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.kvx-cover-body { display: flex; flex-direction: column; justify-content: center; gap: 12px; padding: 32px 36px; background: #0b0d14; }
+.kvx-cover-kicker { font: 700 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: #ff9a5c; }
+.kvx-cover-title { margin: 0 !important; padding: 0 !important; border: 0 !important; font-size: 26px !important; line-height: 1.25; color: #fff; }
+.kvx-cover-text { margin: 0 !important; font-size: 15px; line-height: 1.6; color: var(--text-2); }
+.kvx-cover-play { flex: none; height: 46px; padding: 0 28px; font-size: 15px; }
+.kvx-cover-note { margin: 0 !important; font-size: 12.5px; color: var(--text-3); }
+@container (max-width: 720px) {
+  .kvx.covered .kvx-cover { grid-template-columns: 1fr; min-height: 0; }
+  .kvx-cover-art { min-height: 180px; }
+  .kvx-cover-body { padding: 22px; }
+  .kvx-cover-title { font-size: 21px !important; }
+}
+
+/* ---------- Focus mode uses its height for the game (header and definition stay compact) ---------- */
+/* One header row on mid-size screens: tools show icons (their hover text names them), tabs sit inline. */
+@container (min-width: 900px) and (max-width: 1500px) {
+  .kvx.focus .kvx-head { flex-wrap: nowrap; padding: 8px 14px; }
+  .kvx.focus .kvx-brand { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .kvx.focus .kvx-tabs { order: 0; flex: none; flex-basis: auto; }
+  .kvx.focus .kvx-head-right { flex: none; gap: 6px; }
+  .kvx.focus .kvx-tool { gap: 0; padding: 0 8px; font-size: 0; }
+}
+/* The definition: one compact line; its caption becomes hover text. */
+.kvx.focus .kvx-def { padding: 6px 16px 8px; }
+.kvx.focus .kvx-def small { display: none; }
+.kvx.focus .kvx-def-line { margin: 0 !important; font-size: 14.5px; line-height: 1.9; }
+.kvx.focus .kvx-slot { line-height: 1.55; }
+
+/* Telemetry header always fits on one line. */
+.kvx-tele-head { flex-wrap: nowrap; }
+.kvx-tele-head .kvx-hint { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The arrow pad and action buttons shrink with the 3D view, so they never bury the rover. */
+.kvx-stage { container: stage / inline-size; }
+@container stage (max-width: 560px) {
+  .kvx-pad { transform: scale(0.78); transform-origin: left bottom; left: 10px; bottom: 10px; }
+  .kvx-act { transform: scale(0.78); transform-origin: right bottom; right: 10px; bottom: 10px; }
+  .kvx-legend { display: none; }
+}
+/* Never smaller than 80%: below that the buttons are too small for a finger (24px minimum). */
+
+/* Narrow screens: telemetry is a short strip, so the mission panel (commands, program, Run) gets the room. */
+@container (max-width: 720px) {
+  .kvx.focus .kvx-main { grid-template-rows: minmax(0, 46%) minmax(0, 1fr) 76px; }
+  .kvx.focus .kvx-tele { gap: 4px; padding-bottom: 8px; }
+  .kvx.focus .kvx-tele .kvx-log { padding: 4px 10px; }
+}
+/* Narrow focus mode: one header row too. The logo drops its subtitle, tabs show numbers (hover names them). */
+@container (max-width: 899px) {
+  .kvx.focus .kvx-head { flex-wrap: nowrap; padding: 8px 12px; gap: 8px; }
+  .kvx.focus .kvx-brand { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .kvx.focus .kvx-brand b { display: none; }
+  .kvx.focus .kvx-tabs { order: 0; flex: none; flex-basis: auto; }
+  .kvx.focus .kvx-tab { padding: 0 4px; }
+  .kvx.focus .kvx-tab span { display: none; }
+  .kvx.focus .kvx-head-right { flex: none; gap: 4px; }
+  .kvx.focus .kvx-tool { gap: 0; padding: 0 7px; font-size: 0; }
+}
+
+/* A note under the program ("your program is empty"): shown where the player is looking. */
+.kvx-inline-hint { display: flex; align-items: flex-start; gap: 8px; margin: 2px 0 0 !important; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255, 201, 77, 0.45); background: rgba(255, 201, 77, 0.08); color: #ffd27a; font-size: 13px; line-height: 1.45; animation: kvx-tip-in 0.25s var(--ease); }
+.kvx-inline-hint svg { flex: none; width: 15px; height: 15px; margin-top: 1px; }
+
+/* Messages on the 3D view sit above everything else there, and the legend steps aside for them. */
+.kvx-bubble { z-index: 6; }
+.kvx-stage:has(.kvx-bubble.show) .kvx-legend { opacity: 0; transition: none; }
+
+/* Narrow screens: the telemetry strip shows a whole two-line message. */
+@container (max-width: 720px) {
+  .kvx.focus .kvx-main { grid-template-rows: minmax(0, 46%) minmax(0, 1fr) 96px; }
+}
+
+/* During the demo its bar sits at the top centre (the bottom belongs to the pad and Run buttons);
+   the legend steps aside and the rover's messages appear just below the bar. */
+.kvx-demo { top: 12px; bottom: auto; transform: translate(-50%, -6px); }
+.kvx.demoing .kvx-demo { transform: translate(-50%, 0); }
+.kvx.demoing .kvx-legend { opacity: 0; transition: none; }
+.kvx.demoing .kvx-bubble { top: 60px; }
+
+/* The speed slider is easy to grab on a phone. */
+.kvx-speed input { min-height: 28px; }
+
+/* The mission panel scrolls instead of squashing its contents when space runs out (phones). */
+.kvx-side > *, .kvx-tele-head { flex-shrink: 0; }
+
+/* A soft cinematic vignette over the 3D view: draws the eye to the middle, like a camera lens. */
+.kvx-viewport::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(20, 8, 4, 0.38) 100%); }

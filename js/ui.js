@@ -156,6 +156,18 @@ export function downloadText(filename, text) {
 }
 
 /** Run `fn` once, the first time `el` comes near the viewport. Returns a function that cancels the wait. */
+/**
+ * Run fn the first time someone shows they want this element: they point at it, touch it or tab
+ * into it. Use it for heavy things (Python, 3D engines) so they never download just because a
+ * page was opened or scrolled past (the "facade" pattern). Returns a cancel function.
+ */
+export function whenWanted(el, fn) {
+  const ac = new AbortController();
+  const go = () => (ac.abort(), fn());
+  for (const type of ['pointerenter', 'pointerdown', 'focusin', 'touchstart']) el.addEventListener(type, go, { signal: ac.signal, passive: true });
+  return () => ac.abort();
+}
+
 export function whenVisible(el, fn) {
   const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && (io.disconnect(), fn()), { rootMargin: '200px' });
   io.observe(el);
@@ -169,3 +181,6 @@ export const debounce = (fn, ms = 200) => {
     t = setTimeout(() => fn(...args), ms);
   };
 };
+
+/** "1 note", "3 notes": a number with its word in the right form. */
+export const count = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

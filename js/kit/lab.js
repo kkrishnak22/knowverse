@@ -13,7 +13,7 @@
 //   age = 20   # Python makes the value 20 and sticks the name age on it
 //   ```
 
-import { h, icon, esc, whenVisible } from '../ui.js';
+import { h, icon, esc, whenVisible, whenWanted } from '../ui.js';
 import { createEditor } from './editor.js';
 import { trace, loadPython, pythonLoaded } from './python.js';
 
@@ -111,7 +111,8 @@ export function mountLab(el, src, { mode = 'lab' } = {}) {
   } }, nextLabel, icon('chevron'));
   const editHint = !watch && h('div', { class: 'kv-edit-hint', title: 'This code is yours to change' }, icon('edit'), 'Change this code. The picture updates.');
   const stageBox = h('div', { class: 'kv-stage-canvas' });
-  const overlay = h('div', { class: 'kv-overlay' }, h('div', { class: 'orbit' }), h('p', {}, 'Python wakes up when you scroll here'));
+  // Until the student reaches for the lab it is 'waiting': no spinner, because nothing is loading yet.
+  const overlay = h('div', { class: `kv-overlay ${pythonLoaded() ? '' : 'waiting'}` }, h('div', { class: 'orbit' }), h('p', {}, pythonLoaded() ? 'Getting Python ready…' : 'Point here to start. Python downloads once (about 10 MB).'));
 
   const editor = createEditor({
     value: initial,
@@ -258,6 +259,7 @@ export function mountLab(el, src, { mode = 'lab' } = {}) {
   }
 
   async function start() {
+    overlay.classList.remove('waiting');
     const { MemoryScene } = await import('./memoryScene.js');
     if (disposed) return;
     scene = new MemoryScene(stageBox);
@@ -270,8 +272,9 @@ export function mountLab(el, src, { mode = 'lab' } = {}) {
     execute(editor.getValue());
   }
 
-  // Start Python and the 3D scene only when the lab scrolls into view.
-  const stopWaiting = whenVisible(el, start);
+  // Python and the 3D scene are large: start them only when the student reaches for the lab
+  // (or at once when Python is already downloaded).
+  const stopWaiting = (pythonLoaded() ? whenVisible : whenWanted)(el, start);
 
   return () => {
     disposed = true;

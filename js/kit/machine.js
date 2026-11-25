@@ -9,9 +9,9 @@
 //   price = 40
 //   ```
 
-import { h, icon, esc, whenVisible } from '../ui.js';
+import { h, icon, esc, whenVisible, whenWanted } from '../ui.js';
 import { highlightLine } from './editor.js';
-import { trace } from './python.js';
+import { trace, pythonLoaded } from './python.js';
 import { parseBlock } from './lab.js';
 
 const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -80,7 +80,7 @@ export function mountMachine(el, src) {
   const screenOut = h('div', { class: 'kvm-screen-out' });
   const screen = h('div', { class: 'kvm-part kvm-screen', title: 'Screen: where the computer shows things to you' },
     h('div', { class: 'kvm-label' }, icon('panel'), 'Screen', h('span', {}, 'shows output')), h('div', { class: 'kvm-monitor' }, screenOut), h('div', { class: 'kvm-stand' }));
-  const caption = h('div', { class: 'kvm-caption', 'aria-live': 'polite' }, 'Getting Python ready…');
+  const caption = h('div', { class: 'kvm-caption', 'aria-live': 'polite' }, pythonLoaded() ? 'Getting Python ready…' : 'Point here to start. Python downloads once (about 10 MB).');
   const nextLabel = h('span', {}, 'Next step');
   const nextBtn = h('button', { class: 'kv-next guide', type: 'button', disabled: true, onclick: () => next() }, nextLabel, icon('chevron'));
   const backBtn = h('button', { class: 'kv-ctl', type: 'button', title: 'Back one step', 'aria-label': 'Back one step', onclick: () => show(at - 1) }, icon('chevronLeft'));
@@ -202,7 +202,9 @@ export function mountMachine(el, src) {
     }
   }
 
-  const stopWaiting = whenVisible(el, start);
+  // Python is a large download: start it only when the student reaches for this block (or at once
+  // when it is already downloaded).
+  const stopWaiting = (pythonLoaded() ? whenVisible : whenWanted)(el, start);
 
   return () => {
     disposed = true;

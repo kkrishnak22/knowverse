@@ -1,7 +1,7 @@
 // App shell: routing, navigation rail, command palette and settings.
 
 import { loadVault, vault, on, getSettings, saveSettings, githubReady, search, colorOf, getUi, setUniverse, universeOfId, currentUniverse } from './store.js';
-import { $, h, fill, icon, hydrateIcons, toast, openModal } from './ui.js';
+import { $, h, fill, icon, hydrateIcons, toast, openModal, count } from './ui.js';
 import { MODELS } from './ai.js';
 import { testConnection } from './github.js';
 import * as multiverseView from './views/multiverseView.js';
@@ -86,8 +86,8 @@ function renderStatus() {
   const s = getSettings();
   const gh = githubReady(s);
   fill($('#topbar-status'), 
-    h('span', { class: 'stat' }, onHome() ? `${vault.universes.length} universes` : `${vault.notes.length} notes`),
-    h('span', { class: 'stat' }, onHome() ? `${vault.all.length} notes` : `${vault.links.length} links`),
+    h('span', { class: 'stat' }, onHome() ? count(vault.universes.length, 'universe') : count(vault.notes.length, 'note')),
+    h('span', { class: 'stat' }, onHome() ? count(vault.all.length, 'note') : count(vault.links.length, 'link')),
     h('button', { class: `pill ${gh ? 'ok' : ''}`, type: 'button', title: gh ? 'Approved notes are committed to this repository' : 'GitHub is not connected — notes publish to this browser only', onclick: () => openSettings('github') },
       icon('github'), h('span', {}, gh ? `${s.ghOwner}/${s.ghRepo}` : 'Local vault')),
   );
@@ -269,6 +269,10 @@ function renderLangSwitch() {
 async function boot() {
   // Developer frame meter: add ?perf to the URL.
   if (new URLSearchParams(location.search).has('perf')) import('./engine/perf.js').then((m) => m.showPerfMeter());
+  // Automatic quality audit: add ?audit to the URL (rules in docs/QUALITY.md).
+  if (new URLSearchParams(location.search).has('audit')) import('./engine/audit.js').then((m) => m.installAudit());
+  // Scenario sweep: add ?sweep to play a page like a visitor and audit every step (js/engine/sweep.js).
+  if (new URLSearchParams(location.search).has('sweep')) window.addEventListener('load', () => setTimeout(() => import('./engine/sweep.js').then((m) => m.runSweep()), 2500), { once: true });
   installTooltips();
   buildChrome();
   renderLangSwitch();

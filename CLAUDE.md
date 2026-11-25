@@ -4,19 +4,20 @@ A static knowledge-multiverse site: no build step, plain ES modules, served as-i
 
 ## Quality bar (read first)
 
-`docs/ENGINEERING.md` is the standard for every change. The short version:
+`docs/ENGINEERING.md` is the standard for every change. `docs/CONTENT.md` is the standard for every page students read. The short version:
 
 - Anything that animates uses the shared engine in `js/engine/` (`frameLoop`, camera, label placement). Never call `requestAnimationFrame` directly or ease with a per-frame `lerp`.
 - Every `mount()` returns a cleanup that undoes everything it started.
 - Reuse before writing: check `js/ui.js`, `js/store.js`, `js/engine/` and the CSS variables first. Never keep two copies of the same logic.
 - `npm run check` (syntax + tests) must pass before a commit; the deploy is blocked if it fails. Logic that can be silently wrong gets a test in `tests/`.
 - Verify in the browser, and confirm the screen goes idle when the user stops.
+- **Quality is part of done.** `docs/QUALITY.md` lists the basics users notice but never ask for (nothing heavy before a click, nothing snaps, content uses the room, readable lines, contrast, tap targets). Run the `quality-audit` skill (or at least `?audit` on the screens you touched, at desktop and phone width) before calling a change done, and end every report with a "Quality check" line saying what was checked and what could not be. When you find a new kind of problem, add a rule for it (test or audit) so it cannot come back. For the Programming Universe page (the rover game), run the scenario sweep (`?sweep`) at all four sizes in `docs/QUALITY.md` before calling any change to it done; test at real screen sizes, never only the narrow browser pane.
 
 ## Conventions
 
 - Vanilla JS modules; DOM built with `h()` / `fill()` from `js/ui.js`. Icons live in `js/ui.js` (`icons`).
 - Words a beginner may not know: add them to `js/glossary.js` (one list for the whole site) and pass text through `termify()` from `js/words.js`; never hand-write tooltips for vocabulary.
-- Language: English or Telugish (Telugu in English letters, English tech words kept; code stays English). A translated screen keeps its text in an `{ en, te }` table read through `translator()` from `js/i18n.js`, and re-renders on `kv-lang-changed`. Mission Control is translated (`js/kit/rover/strings.js`); `tests/i18n.test.js` checks no Telugish line is missing. Telugish is drafted by Claude and reviewed by the owner.
+- Language: English or Telugish (Telugu in English letters, English tech words kept; code stays English). A translated screen keeps its text in an `{ en, te }` table read through `translator()` from `js/i18n.js`, and re-renders on `kv-lang-changed`. Mission Control is translated (`js/kit/rover/strings.js`), the Learn screen too (`js/views/learnStrings.js`), and a note gets a Telugish version as `<name>.te.md` next to it; `tests/i18n.test.js` checks no Telugish line is missing. Telugish is drafted by Claude and reviewed by the owner.
 - Screens are in `js/views/` and export `mount(el, param) → cleanup` and optionally `update(param)`. Routes are in `js/app.js` (`ROUTES`).
 - Notes are Markdown with flat YAML frontmatter in `content/<universe>/…`. Hierarchy: hub → category → topic → subtopic, via `parent:`. After adding or removing notes run `npm run index`.
 - Third-party code is bundled into `vendor/` with esbuild (`npm run vendor`, `npm run vendor:three`). Pyodide is the exception: it loads from jsDelivr at runtime (too large to vendor).
@@ -35,4 +36,4 @@ Read `docs/LEARN_PLAN.md` first. In short:
 
 ## Run locally
 
-`npm install` then `npm start` → http://localhost:4173. Learn is at `#/learn`.
+`npm install` then `npm start` → http://localhost:3000 (set `PORT` to change it). Learn is at `#/learn`.

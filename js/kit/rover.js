@@ -19,6 +19,8 @@
 //     where the rover will stop before it runs: predict, then observe, then explain.
 //   • Nothing plays by itself; a pulsing hint shows what to do next. No points or stars.
 //   • "Show me how" plays an animated demo with a ghost cursor driving the real controls.
+//   • The page opens on a light cover (the "facade" pattern): nothing heavy loads until the player
+//     presses Play or How to play. Pointing at Play starts fetching the 3D code early.
 //   • Starting a mission opens focus mode: the game fills the screen and the page is locked,
 //     so nothing scrolls or jumps while playing. Esc returns to the page.
 //   • Full keyboard control (see KEYS below), and on-screen game controls on the 3D view: an arrow
@@ -31,12 +33,12 @@
 // The rules live in ./rover/missions.js (unit-tested); the 3D world in ./rover/scene.js, loaded
 // only when the game scrolls into view.
 
-import { h, fill, icon, whenVisible } from '../ui.js';
+import { h, fill, icon } from '../ui.js';
 import { frameLoop, ACTIVE, IDLE } from '../engine/loop.js';
 import { MISSIONS, definition, localizeMission, simulate, parseProgram, toPython, report } from './rover/missions.js';
 import { STRINGS } from './rover/strings.js';
-import { translator, getLang, htmlLang } from '../i18n.js';
-import { createDirector, Cancelled } from './rover/demo.js';
+import { translator, getLang, htmlLang, setLang } from '../i18n.js';
+import { createDirector, Cancelled, StepRewind, StepAdvance } from './rover/demo.js';
 import { termify, termButton, isSeen } from '../words.js';
 import { GLOSSARY, BY_ID, wordText } from '../glossary.js';
 
@@ -145,6 +147,8 @@ export function mountRover(el) {
   let dockKind = null; // 'check' while the checkpoint panel has content, else null
   let dockPillText = '';
   let played = false; // the player has watched the demo or started building (stops the "Show me how" pulse)
+  let started = false; // the player has left the cover; until then nothing heavy is loaded
+  let sceneReady = null; // resolves once the 3D world is on screen (or has failed)
 
   // ---------------------------------------------------------------- layout
   const tabs = h('nav', { class: 'kvx-tabs' });
@@ -153,9 +157,25 @@ export function mountRover(el) {
   const helpBtn = h('button', { class: 'kvx-tool', type: 'button', onclick: () => runDemo() });
   const focusBtn = h('button', { class: 'kvx-tool', type: 'button', onclick: () => (focused ? exitFocus() : enterFocus()) });
   const fullBtn = h('button', { class: 'kvx-tool', type: 'button', onclick: () => toggleFullscreen() });
-  const demoText = h('span', {});
+  // In focus mode the game covers the top bar, so it carries its own language switch.
+  const langBtn = h('button', { class: 'kvx-tool', type: 'button', onclick: () => setLang(getLang() === 'te' ? 'en' : 'te') });
+  let demoBeat = 0;
+  const demoStep = h('span', { class: 'kvx-demo-step' });
+  const demoText = h('span', { class: 'kvx-demo-text' });
+  const demoPrevBtn = h('button', { class: 'kvx-btn small', type: 'button', onclick: () => demoBeat > 0 && director.prev() });
+  const demoPauseBtn = h('button', { class: 'kvx-btn small', type: 'button', onclick: () => director.togglePause() });
+  const demoNextBtn = h('button', { class: 'kvx-btn small', type: 'button', onclick: () => director.next() });
+  const DEMO_MODES = ['normal', 'slow', 'step'];
+  const demoSpeedBtn = h('button', {
+    class: 'kvx-btn small',
+    type: 'button',
+    onclick: () => {
+      const next = DEMO_MODES[(DEMO_MODES.indexOf(director.mode) + 1) % DEMO_MODES.length];
+      director.setMode(next);
+    },
+  });
   const demoSkip = h('button', { class: 'kvx-btn small', type: 'button', onclick: () => stopDemo() });
-  const demoBar = h('div', { class: 'kvx-demo' }, h('b', {}, 'DEMO'), demoText, demoSkip);
+  const demoBar = h('div', { class: 'kvx-demo' }, h('b', {}, 'DEMO'), demoStep, demoText, demoPrevBtn, demoPauseBtn, demoNextBtn, demoSpeedBtn, demoSkip);
   // On-screen game controls, like a mobile game: an arrow pad that adds commands, and action buttons.
   const padBtn = (cls, ico, fn) => h('button', { class: cls, type: 'button', onclick: fn }, icon(ico));
   const padKeys = {
@@ -230,13 +250,28 @@ export function mountRover(el) {
   const dockPill = h('button', { class: 'kvx-dock-pill', type: 'button', onclick: () => setDockOpen(true) });
   const final = h('div', { class: 'kvx-final' });
   const brand = h('div', { class: 'kvx-brand' });
-  const root = h('div', { class: 'kvx', tabindex: '-1' },
+  // The cover: what the page shows before the player asks for the game.
+  const coverKicker = h('span', { class: 'kvx-cover-kicker' });
+  const coverTitle = h('h3', { class: 'kvx-cover-title' });
+  const coverText = h('p', { class: 'kvx-cover-text' });
+  const coverPlay = h('button', { class: 'kvx-run kvx-cover-play', type: 'button', onclick: () => startGame() });
+  const coverHow = h('button', { class: 'kvx-btn', type: 'button', onclick: () => runDemo() });
+  const coverNote = h('p', { class: 'kvx-cover-note' });
+  const cover = h('div', { class: 'kvx-cover' },
+    h('div', { class: 'kvx-cover-art', 'aria-hidden': 'true' }, h('i', { class: 'sun' }), h('i', { class: 'ridge far' }), h('i', { class: 'ridge near' }), h('i', { class: 'flag' })),
+    h('div', { class: 'kvx-cover-body' }, coverKicker, coverTitle, coverText, h('div', { class: 'kvx-actions' }, coverPlay, coverHow), coverNote));
+  // Pointing at Play (or tabbing to it) fetches the 3D code in advance, so the click feels instant.
+  const warm = () => import('./rover/scene.js').catch(() => {});
+  coverPlay.addEventListener('pointerenter', warm, { once: true });
+  coverPlay.addEventListener('focus', warm, { once: true });
+
+  const root = h('div', { class: 'kvx covered', tabindex: '-1' },
     h('header', { class: 'kvx-head' },
       brand,
       tabs,
-      h('div', { class: 'kvx-head-right' }, helpBtn, viewBtn, soundBtn, fullBtn, focusBtn)),
+      h('div', { class: 'kvx-head-right' }, helpBtn, viewBtn, soundBtn, langBtn, fullBtn, focusBtn)),
     h('div', { class: 'kvx-def' }, defNote, def),
-    main, dock, dockPill, final);
+    main, dock, dockPill, final, cover);
   el.append(root);
   const director = createDirector(root);
   let lastDebrief = null; // [sim, run] of the checkpoint on show, to redraw it in another language
@@ -252,16 +287,24 @@ export function mountRover(el) {
   /** Every fixed piece of text, in the current language. */
   function renderStatic() {
     root.lang = htmlLang();
-    fill(brand, termify(t('brand')), h('b', {}, termify(t('brandSub'))));
+    // The logo stays plain text: underlined words belong in sentences, not in a logo.
+    fill(brand, t('brand'), h('b', {}, t('brandSub')));
     tabs.setAttribute('aria-label', t('missions'));
     fill(helpBtn, icon('play'), t('howToPlay'));
     helpBtn.title = t('howTitle');
+    fill(langBtn, icon('globe'), t('langSwitch'));
+    langBtn.title = t('langSwitchTitle');
     fill(fullBtn, icon('fit'), t('fullScreen'));
     fullBtn.title = t('fullTitle');
     viewBtn.title = t('viewTitle');
     soundBtn.title = t('soundTitle');
     demoText.textContent = t('followCursor');
+    demoPrevBtn.textContent = t('demoPrev');
+    demoNextBtn.textContent = t('demoNext');
+    demoSpeedBtn.title = t('demoSpeedTitle');
     demoSkip.textContent = t('skipEsc');
+    director.setHints({ paused: t('demoPausedHint'), step: t('demoStepHint') });
+    syncDemoControls();
     tip(padKeys.forward, t('padAdd', 'forward', '↑'));
     tip(padKeys.left, t('padAdd', 'left', '←'));
     tip(padKeys.right, t('padAdd', 'right', '→'));
@@ -273,6 +316,7 @@ export function mountRover(el) {
     tip(zoomOutBtn, t('zoomOut'));
     tip(recenterBtn, t('recenter'));
     defNote.textContent = t('defNote');
+    def.title = t('defNote');
     posterText.textContent = 'failed' in poster.dataset ? t('noScene') : t('landing');
     legend.flag.textContent = t('legendFlag');
     legend.sample.textContent = t('legendSample');
@@ -289,11 +333,20 @@ export function mountRover(el) {
     speedLabel.textContent = t('speeds')[speed];
     keysStrip.setAttribute('aria-label', t('keysAria'));
     fill(keysStrip, KEY_GLYPHS.map((k, i) => h('span', {}, h('kbd', {}, k), t('keys')[i])));
-    fill(teleLabel, termify(t('teleLabel')));
-    wordsLabel.textContent = t('wordsLabel');
+    // Short labels so the panel header fits in one line at any width; the longer line is the hover text.
+    fill(teleLabel, termify(t('telemetry')));
+    teleLabel.title = t('teleLabel');
+    wordsLabel.textContent = t('words');
+    wordsLabel.title = t('wordsLabel');
     fill(dockToggle, t('hide'), icon('chevron'));
     dockToggle.title = t('hideTitle');
     dock.setAttribute('aria-label', t('checkpointAria'));
+    coverKicker.textContent = t('coverKicker');
+    fill(coverTitle, t('coverTitle'));
+    fill(coverText, termify(t('coverText')));
+    fill(coverPlay, icon('play'), t('coverPlay'));
+    fill(coverHow, icon('eye'), t('howToPlay'));
+    coverNote.textContent = t('coverNote');
   }
 
   function renderTools() {
@@ -397,6 +450,18 @@ export function mountRover(el) {
       fill(wordsList, WORDS.map((id) => h('li', { class: isSeen(id) ? 'seen' : '' },
         termButton(id), h('span', {}, wordText(BY_ID.get(id), getLang()).short), isSeen(id) && icon('check'))));
     }
+  }
+
+  /** A short note right under the program (shaking it), until the player changes the program. */
+  function hintProgram(text) {
+    const target = controls.querySelector('.kvx-program:not(.kvx-pool), .kvx-text');
+    if (!target) return say(text, 'bad');
+    controls.querySelector('.kvx-inline-hint')?.remove();
+    target.after(h('p', { class: 'kvx-inline-hint', role: 'alert' }, icon('info'), h('span', {}, termify(text))));
+    target.classList.remove('shake');
+    void target.offsetWidth;
+    target.classList.add('shake');
+    target.scrollIntoView({ block: 'nearest' });
   }
 
   function addLog(text, kind = '') {
@@ -590,6 +655,11 @@ export function mountRover(el) {
 
   // ---------------------------------------------------------------- missions
 
+  function syncDemoControls() {
+    demoPauseBtn.textContent = director.paused ? t('demoResume') : t('demoPause');
+    demoSpeedBtn.textContent = t('demoSpeeds')[director.mode];
+  }
+
   function loadMission(i) {
     mi = i;
     const mission = m();
@@ -657,7 +727,8 @@ export function mountRover(el) {
     }
     if (!cmds.length) {
       addLog(t('noInstructions'), 'bad');
-      say(t('waiting'));
+      // Say it where the player is looking: under their (empty) program, not on the 3D view.
+      hintProgram(mission.mode === 'code' ? t('emptyCode') : t('emptyRun'));
       sfx.error();
       return false;
     }
@@ -669,6 +740,7 @@ export function mountRover(el) {
 
   async function runAll() {
     if (busy || won) return;
+    if (!focused) enterFocus(); // a run is watched: open the game across the window first
     showTele('log');
     const mission = m();
     if (!exec) {
@@ -694,6 +766,7 @@ export function mountRover(el) {
 
   async function runStep() {
     if (busy || won || m().delay) return;
+    if (!focused) enterFocus();
     if (!exec && !prepare()) return;
     busy = true;
     renderControls();
@@ -829,6 +902,7 @@ export function mountRover(el) {
 
   /** Move the game over the whole window. The page underneath is locked, so nothing scrolls. */
   function enterFocus() {
+    startGame(false);
     if (focused) return;
     focused = true;
     placeholder = h('div', { class: 'kvx-placeholder', style: { height: `${root.offsetHeight}px` } },
@@ -881,7 +955,12 @@ export function mountRover(el) {
 
   // Each demo uses the real controls through a ghost cursor, with the explanation beside it.
   // Demo programs are short and never solve the mission: they show how to play, not the answer.
-  const explain = (text) => director.say(text);
+  const explain = (text, step = 0, total = 0, key = '') => {
+    const badge = total ? t('demoStepLabel', step, total) : t('demo');
+    demoStep.textContent = badge;
+    director.say(text, { badge, key });
+  };
+  const pauseRead = (ms = 2400) => director.sleep(ms, { holdInStep: true });
   const find = (sel) => controls.querySelector(sel) || root.querySelector(sel);
   const programList = () => find('.kvx-program:not(.kvx-pool)');
   const insButton = (label) => [...controls.querySelectorAll('.kvx-ins')].find((b) => b.textContent === label);
@@ -895,107 +974,238 @@ export function mountRover(el) {
   }
 
   /** Point at the program, press Run, and narrate while the rover drives. */
-  async function demoRun(during, after) {
-    await director.click(runFab, 800);
-    explain(during);
-    await runAll();
-    await director.sleep(400);
-    explain(after);
-    await director.moveTo(log, 900);
-    await director.sleep(2600);
+  function runBeatsForRun(during, after) {
+    return [
+      {
+        run: async (step, total) => {
+          await director.click(runFab, 1000);
+          explain(during, step, total, t('run'));
+          await runAll();
+          await director.sleep(500);
+        },
+        setup: () => {
+          const sim = simulate(m(), program.length ? program : parse(code).cmds);
+          sim.steps.forEach((s, idx) => {
+            addLog(`T+${String(idx + 1).padStart(2, '0')} ${s.cmd}()`);
+            if (s.sample) addLog(t('sampleLog'), 'ok');
+          });
+        },
+      },
+      {
+        run: async (step, total) => {
+          explain(after, step, total, t('telemetry'));
+          await director.moveTo(log, 1050);
+          await pauseRead(3000);
+        },
+      },
+    ];
   }
 
-  async function demoBuild() {
-    explain(t('d').buildCommands);
-    await director.moveTo(find('.kvx-palette'), 900);
-    await director.sleep(1600);
-    explain(t('d').buildDrag);
-    await director.drag(find('.kvx-palette .kvx-chip[data-cmd="forward"]'), programList(), 1000);
-    clickChip('palette', 0, 'forward');
-    await director.sleep(700);
-    explain(t('d').buildPad);
-    await director.click(padKeys.forward, 1000);
-    addCommand('forward');
-    await director.sleep(1200);
-    explain(t('d').buildTurn);
-    await director.click(padKeys.right, 600);
-    addCommand('right');
-    await director.sleep(1400);
-    explain(t('d').buildProgram);
-    await director.moveTo(programList(), 900);
-    await director.sleep(2000);
-    await demoRun(t('d').buildRun, t('d').buildAfter);
+  function buildBeats() {
+    return [
+      {
+        run: async (step, total) => {
+          explain(t('d').buildCommands, step, total);
+          await director.moveTo(find('.kvx-palette'), 1050);
+          await pauseRead(2400);
+        },
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').buildDrag, step, total, 'forward()');
+          await director.drag(find('.kvx-palette .kvx-chip[data-cmd="forward"]'), programList(), 1200);
+          clickChip('palette', 0, 'forward');
+          await pauseRead(1600);
+        },
+        setup: () => program.push('forward'),
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').buildPad, step, total, '↑ forward()');
+          await director.click(padKeys.forward, 1100);
+          addCommand('forward');
+          await pauseRead(2200);
+        },
+        setup: () => program.push('forward'),
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').buildTurn, step, total, '← / →');
+          await director.click(padKeys.right, 950);
+          addCommand('right');
+          await pauseRead(2400);
+        },
+        setup: () => program.push('right'),
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').buildProgram, step, total);
+          await director.moveTo(programList(), 1000);
+          await pauseRead(2500);
+        },
+      },
+      ...runBeatsForRun(t('d').buildRun, t('d').buildAfter),
+    ];
   }
 
-  async function demoOrder() {
-    explain(t('d').orderWrong);
-    await director.moveTo(find('.kvx-pool'), 900);
-    await director.sleep(1800);
-    explain(t('d').orderTap);
-    await director.click(find('.kvx-pool .kvx-chip'), 700);
-    clickChip('pool', 0, pool[0]);
-    await director.sleep(700);
-    explain(t('d').orderMoves);
-    await director.moveTo(find('.kvx-program:not(.kvx-pool) .kvx-chip'), 800);
-    await director.sleep(1500);
-    explain(t('d').orderBack);
-    await director.press();
-    clickChip('program', 0, program[0]);
-    await director.sleep(1300);
-    explain(t('d').orderPad);
-    await director.click(padKeys.forward, 1000);
-    addCommand('forward');
-    await director.sleep(1400);
-    explain(t('d').orderRun);
-    await director.moveTo(runFab, 900);
-    await director.sleep(2400);
+  function orderBeats() {
+    return [
+      {
+        run: async (step, total) => {
+          explain(t('d').orderWrong, step, total);
+          await director.moveTo(find('.kvx-pool'), 1050);
+          await pauseRead(2400);
+        },
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').orderTap, step, total);
+          await director.click(find('.kvx-pool .kvx-chip'), 950);
+          clickChip('pool', 0, pool[0]);
+          await pauseRead(1500);
+        },
+        setup: () => program.push(pool.shift()),
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').orderMoves, step, total);
+          await director.moveTo(find('.kvx-program:not(.kvx-pool) .kvx-chip'), 950);
+          await pauseRead(2200);
+        },
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').orderBack, step, total);
+          await director.press();
+          clickChip('program', 0, program[0]);
+          await pauseRead(2000);
+        },
+        setup: () => pool.push(program.shift()),
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').orderPad, step, total, '↑ forward()');
+          await director.click(padKeys.forward, 1100);
+          addCommand('forward');
+          await pauseRead(2200);
+        },
+        setup: () => {
+          const i = pool.indexOf('forward');
+          if (i >= 0) program.push(pool.splice(i, 1)[0]);
+        },
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').orderRun, step, total, t('run'));
+          await director.moveTo(runFab, 1000);
+          await pauseRead(2600);
+        },
+      },
+    ];
   }
 
-  async function demoCode() {
-    code = '';
-    renderControls();
-    explain(t('d').codeWrite);
-    await director.moveTo(find('textarea'), 900);
-    await director.sleep(1800);
-    explain(t('d').codeInsert);
-    for (const label of ['forward()', 'left()', 'forward()']) {
-      await director.click(insButton(label), 650);
-      insert(label);
-      await director.sleep(450);
-    }
-    explain(t('d').codeThree);
-    await director.moveTo(insButton('forward(3)'), 700);
-    await director.sleep(1800);
-    await demoRun(t('d').codeRun, t('d').codeAfter);
+  function codeBeats() {
+    return [
+      {
+        run: async (step, total) => {
+          code = '';
+          renderControls();
+          explain(t('d').codeWrite, step, total);
+          await director.moveTo(find('textarea'), 1050);
+          await pauseRead(2400);
+        },
+        setup: () => { code = ''; },
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').codeInsert, step, total, 'forward()');
+          for (const label of ['forward()', 'left()', 'forward()']) {
+            await director.click(insButton(label), 850);
+            insert(label);
+            await director.sleep(750);
+          }
+          await pauseRead(1400);
+        },
+        setup: () => { code = 'forward()\nleft()\nforward()'; },
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').codeThree, step, total, 'forward(3)');
+          await director.moveTo(insButton('forward(3)'), 900);
+          await pauseRead(2400);
+        },
+      },
+      ...runBeatsForRun(t('d').codeRun, t('d').codeAfter),
+    ];
   }
 
-  async function demoDelay() {
+  function delayBeats() {
     const cmds = ['forward', 'forward'];
     const stop = simulate(m(), cmds).end;
-    explain(t('d').delaySame);
-    await director.moveTo(find('.kvx-palette'), 900);
-    await director.sleep(2000);
-    explain(t('d').delayBuild);
-    for (const cmd of cmds) {
-      await director.click(padKeys[cmd], 800);
-      addCommand(cmd);
-      await director.sleep(400);
+    return [
+      {
+        run: async (step, total) => {
+          explain(t('d').delaySame, step, total);
+          await director.moveTo(find('.kvx-palette'), 1050);
+          await pauseRead(2500);
+        },
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').delayBuild, step, total, '↑');
+          for (const cmd of cmds) {
+            await director.click(padKeys[cmd], 950);
+            addCommand(cmd);
+            await director.sleep(700);
+          }
+          await pauseRead(1200);
+        },
+        setup: () => program.push(...cmds),
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').delayTransmit, step, total, t('transmit'));
+          await director.click(runFab, 1000);
+          const running = runAll();
+          if (scene) {
+            while (!pickBar.classList.contains('show')) await director.sleep(80);
+            explain(t('d').delayPick, step, total);
+            await director.moveTo(tilePoint(stop), 1200);
+            await pauseRead(1600);
+            await director.press();
+            scene.opts.onPick?.(stop);
+            explain(t('d').delaySignal, step, total);
+          }
+          await running;
+        },
+      },
+      {
+        run: async (step, total) => {
+          explain(t('d').delayAfter, step, total);
+          await pauseRead(3000);
+        },
+      },
+    ];
+  }
+
+  async function runBeats(beats) {
+    demoBeat = 0;
+    while (demoBeat < beats.length) {
+      demoPrevBtn.disabled = demoBeat === 0;
+      director.resetStep();
+      try {
+        await beats[demoBeat].run(demoBeat + 1, beats.length);
+        demoBeat++;
+      } catch (err) {
+        if (err instanceof StepAdvance) demoBeat = Math.min(beats.length, demoBeat + 1);
+        else if (err instanceof StepRewind) demoBeat = Math.max(0, demoBeat - 1);
+        else throw err;
+        cancelPick?.();
+        resetEditor();
+        for (let k = 0; k < demoBeat; k++) beats[k].setup?.();
+        renderControls();
+      }
     }
-    explain(t('d').delayTransmit);
-    await director.click(runFab, 900);
-    const running = runAll();
-    if (scene) {
-      while (!pickBar.classList.contains('show')) await director.sleep(80);
-      explain(t('d').delayPick);
-      await director.moveTo(tilePoint(stop), 1100);
-      await director.sleep(900);
-      await director.press();
-      scene.opts.onPick?.(stop);
-      explain(t('d').delaySignal);
-    }
-    await running;
-    explain(t('d').delayAfter);
-    await director.sleep(2800);
   }
 
   /** Play the demo for this mission. */
@@ -1004,21 +1214,31 @@ export function mountRover(el) {
     played = true;
     setDockOpen(false);
     enterFocus();
+    await sceneReady; // the demo points at the 3D world, so wait for it
+    if (disposed || demoing) return;
     resetEditor();
     demoing = true;
     root.classList.add('demoing');
     showTele('log');
-    director.start();
+    director.start({
+      hints: { paused: t('demoPausedHint'), step: t('demoStepHint') },
+      onState: () => syncDemoControls(),
+    });
     try {
-      await director.sleep(500);
+      await director.sleep(600);
       const mission = m();
-      if (mission.mode === 'order') await demoOrder();
-      else if (mission.mode === 'code') await demoCode();
-      else if (mission.delay) await demoDelay();
-      else await demoBuild();
-      explain(mission.mode === 'code' ? t('d').yourTurnCode : t('d').yourTurn);
-      await director.moveTo(mission.mode === 'code' ? runFab : padKeys.forward, 900);
-      await director.sleep(2000);
+      const beats = mission.mode === 'order' ? orderBeats()
+        : mission.mode === 'code' ? codeBeats()
+        : mission.delay ? delayBeats()
+        : buildBeats();
+      beats.push({
+        run: async (step, total) => {
+          explain(mission.mode === 'code' ? t('d').yourTurnCode : t('d').yourTurn, step, total);
+          await director.moveTo(mission.mode === 'code' ? runFab : padKeys.forward, 1000);
+          await pauseRead(2400);
+        },
+      });
+      await runBeats(beats);
     } catch (err) {
       if (!(err instanceof Cancelled)) console.error(err);
     } finally {
@@ -1164,6 +1384,7 @@ export function mountRover(el) {
   // Keys work while the game has the screen (focus mode) or keyboard focus.
   document.addEventListener('keydown', (e) => {
     if (!focused && !root.contains(document.activeElement)) return;
+    if (!started) return; // the cover is up: its buttons work as normal buttons
     const tag = e.target.tagName;
     const typing = tag === 'TEXTAREA' || tag === 'INPUT';
     if (e.key === 'Escape') {
@@ -1174,7 +1395,13 @@ export function mountRover(el) {
       return;
     }
     if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
-    if (demoing) return e.preventDefault();
+    if (demoing) {
+      if (e.key === ' ') { e.preventDefault(); director.togglePause(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); if (demoBeat > 0) director.prev(); }
+      else if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); director.next(); }
+      else e.preventDefault();
+      return;
+    }
     if (final.classList.contains('show')) return;
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     const mission = m();
@@ -1232,8 +1459,18 @@ export function mountRover(el) {
   }
   document.addEventListener('kv-lang-changed', relocalize, { signal: listeners.signal });
 
-  // The 3D world (and the three.js bundle) loads only when the game comes into view.
-  const stopWaiting = whenVisible(root, async () => {
+  /** Leave the cover: load the 3D world and open the game across the window. */
+  function startGame(focus = true) {
+    if (!started) {
+      started = true;
+      root.classList.remove('covered');
+      sceneReady = loadScene();
+    }
+    if (focus) enterFocus();
+  }
+
+  // The 3D world (and the three.js bundle) loads only when the player asks for the game.
+  async function loadScene() {
     try {
       const { MarsScene } = await import('./rover/scene.js');
       if (disposed) return;
@@ -1246,7 +1483,7 @@ export function mountRover(el) {
       posterText.textContent = t('noScene');
       poster.dataset.failed = '';
     }
-  });
+  }
 
   // Leaving full screen with the browser's own controls keeps focus mode; refresh the buttons.
   document.addEventListener('fullscreenchange', () => renderTools(), { signal: listeners.signal });
@@ -1260,7 +1497,6 @@ export function mountRover(el) {
       root.remove();
       document.documentElement.classList.remove('kvx-locked');
     }
-    stopWaiting();
     listeners.abort();
     clearTimeout(bubbleTimer);
     timers.forEach(clearTimeout);

@@ -18,7 +18,7 @@ const COLORS = {
   zenith: new THREE.Color('#8a5a40'),
   halo: new THREE.Color('#e9dccb'),
   ground: new THREE.Color('#6a321d'),
-  fog: new THREE.Color('#c89064'),
+  fog: new THREE.Color('#c99a6e'), // dusty haze, close to the sky at the horizon
 };
 const noise = createNoise(7);
 
@@ -110,7 +110,7 @@ function makeHeight(n) {
       h += out * land;
     }
     const far = smoothstep(35, 95, Math.hypot(x, z));
-    if (far > 0) h += far * (noise.ridged2(x * 0.012 + 3, z * 0.012 - 7, 5) * 26 - 2);
+    if (far > 0) h += far * (noise.ridged2(x * 0.012 + 3, z * 0.012 - 7, 5) * 15 - 2);
     return h;
   };
 }
@@ -124,10 +124,12 @@ function buildTerrain(heightAt) {
   for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
   geo.computeVertexNormals();
 
-  const dust = new THREE.Color('#b98a62');
-  const rust = new THREE.Color('#8f5536');
-  const basalt = new THREE.Color('#4b3328');
-  const pale = new THREE.Color('#cba27c');
+  // Mars is butterscotch dust over darker, greyer basalt, not one saturated orange.
+  const dust = new THREE.Color('#c39066');
+  const rust = new THREE.Color('#94573a');
+  const basalt = new THREE.Color('#3f2e27');
+  const pale = new THREE.Color('#d8b48e');
+  const darkSand = new THREE.Color('#6b4331');
   const colors = new Float32Array(pos.count * 3);
   const nrm = geo.attributes.normal;
   const c = new THREE.Color();
@@ -139,6 +141,8 @@ function buildTerrain(heightAt) {
     const n2 = noise.fbm2(x * 0.6 + 40, z * 0.6, 3) * 0.5 + 0.5;
     c.copy(rust).lerp(dust, smoothstep(0.25, 0.75, n1));
     c.lerp(pale, smoothstep(0.62, 0.9, n2) * 0.35);
+    const n3 = noise.fbm2(x * 0.03 + 17, z * 0.03 - 5, 3) * 0.5 + 0.5;
+    c.lerp(darkSand, smoothstep(0.52, 0.78, n3) * 0.55); // wind-sorted dark sand
     c.lerp(basalt, smoothstep(0.08, 0.32, slope) * 0.85);
     colors.set([c.r, c.g, c.b], i * 3);
   }
@@ -152,6 +156,17 @@ function buildTerrain(heightAt) {
     return ripple + noise.tileFbm(u * 32, v * 32, 32, 3) * 1.1;
   }, 1.9);
   const albedo = greyTexture(256, (u, v) => 0.78 + noise.tileFbm(u * 8, v * 8, 8, 4) * 0.36);
+  // A coarser layer seen from the game camera: pebbles and hairline cracks in the crust.
+  const pebbles = normalTexture(512, (u, v) => {
+    const crack = 1 - Math.abs(noise.tileFbm(u * 5, v * 5, 5, 3));
+    return Math.pow(crack, 6) * -0.9 + noise.tileFbm(u * 18, v * 18, 18, 2) * 0.55;
+  }, 2.4);
+  // The same cracks as a colour layer: dark lines and grit where the light does not reach.
+  const crackAlbedo = greyTexture(512, (u, v) => {
+    const crack = 1 - Math.abs(noise.tileFbm(u * 5, v * 5, 5, 3));
+    return Math.min(1, 1 - Math.pow(crack, 6) * 0.55 + noise.tileFbm(u * 18, v * 18, 18, 2) * 0.12);
+  });
+  crackAlbedo.colorSpace = THREE.NoColorSpace;
   normalMap.repeat.set(46, 46);
   albedo.repeat.set(24, 24);
   const mat = new THREE.MeshStandardMaterial({
@@ -162,6 +177,18 @@ function buildTerrain(heightAt) {
     roughness: 0.97,
     metalness: 0,
   });
+  // Two extra texture reads in the ground shader: the pebble layer (at a quarter of the fine
+  // ripples' scale) and the albedo again at a tenth, so broad light and dark patches break the
+  // repetition. Cheap, and it is what makes the ground read as real at a distance.
+  mat.userData.textures = [pebbles, crackAlbedo]; // released with the material (_disposeObject)
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.pebbleMap = { value: pebbles };
+    shader.uniforms.crackMap = { value: crackAlbedo };
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <normalmap_pars_fragment>', '#include <normalmap_pars_fragment>\nuniform sampler2D pebbleMap;\nuniform sampler2D crackMap;')
+      .replace('mapN.xy *= normalScale;', 'mapN.xy *= normalScale;\n\tvec3 pebN = texture2D( pebbleMap, vNormalMapUv * 0.26 ).xyz * 2.0 - 1.0;\n\tmapN.xy += pebN.xy * 0.95;')
+      .replace('vec4 sampledDiffuseColor = texture2D( map, vMapUv );', 'vec4 sampledDiffuseColor = texture2D( map, vMapUv );\n\tsampledDiffuseColor.rgb *= mix( 0.8, 1.14, texture2D( map, vMapUv * 0.09 ).r );\n\tsampledDiffuseColor.rgb *= texture2D( crackMap, vMapUv * 0.5 ).r;');
+  };
   const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;
   return mesh;
@@ -252,6 +279,19 @@ function rockGeometry(seed, detail = 3) {
     if (v.y < -0.15) v.y = -0.15 + (v.y + 0.15) * 0.3; // flat-ish base so it sits in the sand
     pos.setXYZ(i, v.x, v.y, v.z);
   }
+  // Real rocks break along planes: shave the shape with a few random cuts for crisp facets.
+  const cuts = Array.from({ length: 5 }, () => {
+    const n = new THREE.Vector3(r() - 0.5, (r() - 0.2) * 0.9, r() - 0.5).normalize();
+    return { n, d: 0.55 + r() * 0.3 };
+  });
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    for (const { n, d } of cuts) {
+      const over = v.dot(n) - d;
+      if (over > 0) v.addScaledVector(n, -over);
+    }
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
   smoothNormals(geo);
   // Dust settles on upward-facing surfaces.
   const nrm = geo.attributes.normal;
@@ -261,6 +301,7 @@ function rockGeometry(seed, detail = 3) {
   const c = new THREE.Color();
   for (let i = 0; i < pos.count; i++) {
     c.copy(dark).lerp(dusty, smoothstep(0.35, 0.95, nrm.getY(i)) * 0.85);
+    c.multiplyScalar(0.55 + 0.45 * smoothstep(-0.15, 0.3, pos.getY(i))); // darker where it meets the ground
     colors.set([c.r, c.g, c.b], i * 3);
   }
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
@@ -530,7 +571,8 @@ export class MarsScene {
 
     const renderer = (this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' }));
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    // AgX keeps bright dust and the sun's halo natural instead of clipping them to flat orange.
+    renderer.toneMapping = THREE.AgXToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
@@ -539,11 +581,15 @@ export class MarsScene {
     host.append(renderer.domElement);
 
     const scene = (this.scene = new THREE.Scene());
-    scene.fog = new THREE.Fog(COLORS.fog, 32, 150);
+    // Aerial perspective: Mars's dusty air fades distance into the colour of the horizon.
+    scene.fog = new THREE.FogExp2(COLORS.fog, 0.0115);
     this.camera = new THREE.PerspectiveCamera(36, 1.4, 0.05, 900);
     this.cam = { az: 0.5, pol: 1.08, r: 14, tx: 0, tz: 0 };
     this.camGoal = { ...this.cam };
 
+    // A soft dark disc under objects that touch the ground, so they look planted (contact shadow).
+    this.contactGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    this.contactMat = new THREE.MeshBasicMaterial({ map: glowTexture('rgba(255,255,255,1)'), color: '#000000', transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
     this.textures = {
       glow: glowTexture(),
       foil: normalTexture(128, (u, v) => noise.tileFbm(u * 6, v * 6, 6, 4) * 1.4, 4),
@@ -559,15 +605,15 @@ export class MarsScene {
     pmrem.dispose();
     envScene.traverse((o) => (o.geometry?.dispose(), o.material?.dispose()));
     scene.environment = this.envMap;
-    scene.environmentIntensity = 0.55;
+    scene.environmentIntensity = 0.4;
 
-    const sun = (this.sun = new THREE.DirectionalLight('#fff0dc', 2.7));
+    const sun = (this.sun = new THREE.DirectionalLight('#ffe6c8', 3.9));
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.025;
     scene.add(sun, sun.target);
-    scene.add(new THREE.HemisphereLight('#e2b083', '#4a2214', 0.35));
+    scene.add(new THREE.HemisphereLight('#e7b88c', '#4a2214', 0.32)); // sky above, sunlit dust bouncing from below
 
     this.ambientDust = this._buildDust();
     scene.add(this.ambientDust);
@@ -637,6 +683,22 @@ export class MarsScene {
     this.flag.group.position.copy(this.world(m.goal[0], m.goal[1]));
     this.reset();
     this.setView(this.view, true);
+    this._warmUp();
+  }
+
+  /**
+   * Compile every shader the game will need (wheel tracks, dust puffs, sparks) in the background,
+   * so the first run does not freeze for half a second while the browser prepares them.
+   */
+  _warmUp() {
+    if (this.warmed || !this.renderer.compileAsync) return;
+    this.warmed = true;
+    const extras = new THREE.Scene();
+    const probe = new THREE.Mesh(new THREE.PlaneGeometry(0.01, 0.01), this.trackMat);
+    extras.add(probe);
+    Promise.all([this.renderer.compileAsync(this.scene, this.camera), this.renderer.compileAsync(extras, this.camera, this.scene)])
+      .catch(() => {}) // a failed warm-up only means the first run compiles as before
+      .finally(() => probe.geometry.dispose());
   }
 
   /** World position of a tile centre, on the ground. */
@@ -671,7 +733,7 @@ export class MarsScene {
     const span = this.m ? this.m.n * TILE : 6;
     this.camGoal = view === 'plan'
       ? { az: 0, pol: 0.02, r: span * 2.05, tx: 0, tz: 0 }
-      : { az: 0.5, pol: 1.2, r: span * 2.55, tx: -Math.sin(0.5) * span * 0.32, tz: -Math.cos(0.5) * span * 0.32 };
+      : { az: 0.5, pol: 1.27, r: span * 2.45, tx: -Math.sin(0.5) * span * 0.32, tz: -Math.cos(0.5) * span * 0.32 };
     if (instant) Object.assign(this.cam, this.camGoal);
     if (this.gridMat) this.gridMat.opacity = view === 'plan' ? 0.55 : 0.3; // tiles read clearly when planning
     this.wake();
@@ -917,12 +979,18 @@ export class MarsScene {
     m.rocks.forEach(([x, y], i) => {
       const rock = new THREE.Mesh(rockGeometry(101 + i * 7 + m.n * 13), mat);
       const p = this.world(x, y);
-      rock.position.set(p.x, p.y + 0.05, p.z);
       const r = rng(i + 3);
-      rock.scale.setScalar(TILE * (0.36 + r() * 0.08));
+      const size = TILE * (0.36 + r() * 0.08);
+      rock.scale.setScalar(size);
+      rock.position.set(p.x, p.y - size * 0.1, p.z); // bedded into the ground, not resting on it
       rock.rotation.y = r() * Math.PI * 2;
       rock.castShadow = rock.receiveShadow = true;
       g.add(rock);
+      const contact = new THREE.Mesh(this.contactGeo, this.contactMat);
+      contact.position.set(p.x, p.y + 0.015, p.z);
+      contact.scale.setScalar(size * 2.6);
+      contact.userData.shared = true;
+      g.add(contact);
     });
     return g;
   }
@@ -1089,10 +1157,12 @@ export class MarsScene {
 
   _disposeObject(obj) {
     obj.traverse((o) => {
+      if (o.userData.shared) return; // shared parts (contact shadows) are released in dispose()
       o.geometry?.dispose();
       const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
       for (const mat of mats) {
         for (const key of ['map', 'normalMap']) if (mat[key] && !Object.values(this.textures).includes(mat[key])) mat[key].dispose();
+        mat.userData.textures?.forEach((t) => t.dispose());
         mat.dispose();
       }
     });
@@ -1107,6 +1177,9 @@ export class MarsScene {
     this.anims.length = 0;
     this._disposeObject(this.scene);
     for (const t of Object.values(this.textures)) t.dispose();
+    this.contactMat.map.dispose();
+    this.contactMat.dispose();
+    this.contactGeo.dispose();
     this.envMap.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();

@@ -1,12 +1,14 @@
 // Documentation viewer: file tree, article, and a context panel
 // (local graph, outline, backlinks, related topics).
 
-import { vault, on, colorOf, backlinks, related, ancestors, getUi, setUi, isLocalOnly, removeLocalNote, loadVault } from '../store.js';
+import { vault, on, colorOf, backlinks, related, ancestors, getUi, setUi, isLocalOnly, removeLocalNote, loadVault, inLang } from '../store.js';
+import { termifyProse } from '../words.js';
+import { htmlLang } from '../i18n.js';
 import { ForceGraph } from '../graph.js';
 import { renderMarkdown } from '../markdown.js';
 import { $, h, fill, icon, toast } from '../ui.js';
 import { draftFromNote } from './architectView.js';
-import { hydrate } from '../kit/blocks.js';
+import { hydrate, SELF_TRANSLATING } from '../kit/blocks.js';
 
 let root = null;
 let currentId = null;
@@ -47,9 +49,13 @@ export function mount(el, param) {
   labelHandles();
 
   const off = on('vault', () => show(currentId));
+  // A note with a Telugish version (<name>.te.md) switches with the top bar's language switch.
+  const relang = () => show(currentId, true);
+  document.addEventListener('kv-lang-changed', relang);
   show(param);
   return () => {
     off();
+    document.removeEventListener('kv-lang-changed', relang);
     unhydrate?.();
     unhydrate = null;
     mini?.destroy();
@@ -94,7 +100,8 @@ function defaultNote() {
   return last || vault.notes.find((n) => n.type === 'hub') || vault.notes[0] || null;
 }
 
-function show(id) {
+/** Show a note. `relang`: the language changed, so keep the reader's place and any live game. */
+function show(id, relang = false) {
   const note = (id && vault.byId.get(id)) || (!id && defaultNote());
   root.classList.remove('tree-open');
   if (!note) {
@@ -109,9 +116,11 @@ function show(id) {
   setUi({ lastNote: note.id, recent, treeOpen: [...open] });
   document.title = `${note.title} · ${vault.name}`;
   renderTree();
-  renderArticle(note);
+  const scroller = $('#doc-scroll', root);
+  const top = scroller.scrollTop;
+  renderArticle(note, relang && note.id === currentId);
   renderContext(note);
-  $('#doc-scroll', root).scrollTop = 0;
+  scroller.scrollTop = relang ? top : 0;
 }
 
 // ---------- Tree ----------
@@ -178,9 +187,10 @@ function renderMissing(id) {
   );
 }
 
-function renderArticle(note) {
+function renderArticle(note, keepLive = false) {
   const color = colorOf(note);
-  const { html, headings } = renderMarkdown(note.body);
+  const view = inLang(note); // the words in the current language
+  const { html, headings } = renderMarkdown(view.body);
   const trail = ancestors(note);
   const parent = vault.parentOf.get(note.id);
   const siblings = parent ? [...vault.children.get(parent.id)].sort(byTitle) : [];
@@ -190,8 +200,12 @@ function renderArticle(note) {
   const kids = [...vault.children.get(note.id)].sort(byTitle);
 
   note._headings = headings;
-  unhydrate?.();
   const article = $('#doc-article', root);
+  // On a language change, games that translate themselves keep running (no restart, progress
+  // kept); every other block is rebuilt in the new language.
+  const kept = keepLive ? [...article.querySelectorAll('.kv-block[data-mounted]')].filter((b) => SELF_TRANSLATING.has(b.dataset.kv)) : [];
+  if (kept.length) for (const b of article.querySelectorAll('.kv-block[data-mounted]')) !kept.includes(b) && b.__kvCleanup?.();
+  else unhydrate?.();
   article.style.setProperty('--note-color', color);
   fill(article, 
     h('div', { class: 'article-bar' },
@@ -199,7 +213,7 @@ function renderArticle(note) {
       h('button', { class: 'icon-btn pane-toggle', type: 'button', title: 'Show or hide the notes list', 'aria-label': 'Show or hide the notes list', onclick: () => togglePane('tree-collapsed', 'treeCollapsed') }, icon('panelLeft')),
       h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' },
         trail.map((a) => [h('a', { href: `#/note/${a.id}` }, a.title), h('span', { class: 'sep' }, '/')]),
-        h('span', { class: 'here' }, note.title),
+        h('span', { class: 'here' }, view.title),
       ),
       h('span', { class: 'spacer' }),
       note.lesson && h('a', { class: 'btn ghost', href: `#/learn/${note.id}`, title: 'Open as an interactive lesson' }, icon('learn'), h('span', {}, 'Lesson')),
@@ -223,8 +237,8 @@ function renderArticle(note) {
         isLocalOnly(note.id) && h('span', { class: 'badge subtle', title: 'Saved in this browser only — not yet in GitHub' }, 'Local only'),
         note.updated && h('span', { class: 'meta' }, icon('clock'), `Updated ${note.updated}`),
       ),
-      h('h1', {}, note.title),
-      note.description && h('p', { class: 'lead' }, note.description),
+      h('h1', {}, view.title),
+      view.description && h('p', { class: 'lead' }, view.description),
       note.tags.length > 0 && h('div', { class: 'tags' }, note.tags.map((t) => h('span', { class: 'tag' }, `#${t}`))),
     ),
     h('div', { class: 'prose', html: html || '<p class="muted">This note has no content yet.</p>' }),
@@ -240,7 +254,19 @@ function renderArticle(note) {
       next ? h('a', { class: 'pager-link next', href: `#/note/${next.id}` }, h('span', { class: 'pager-dir' }, 'Next →'), h('span', {}, next.title)) : h('span', {}),
     ),
   );
-  unhydrate = hydrate(article);
+  article.lang = htmlLang(view.lang || 'en');
+  const prose = article.querySelector('.prose');
+  if (prose && !note.placeholder) termifyProse(prose);
+  for (const block of kept) {
+    const slot = [...article.querySelectorAll(`.kv-block[data-kv="${block.dataset.kv}"]:not([data-mounted])`)][0];
+    if (slot) slot.replaceWith(block);
+    else block.__kvCleanup?.(); // the new version has no such block
+  }
+  const fresh = hydrate(article);
+  unhydrate = () => {
+    fresh();
+    kept.forEach((b) => b.isConnected && b.__kvCleanup?.());
+  };
 }
 
 // ---------- Context panel ----------

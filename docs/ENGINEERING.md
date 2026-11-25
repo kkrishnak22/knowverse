@@ -39,6 +39,11 @@ Rules that follow from the loop:
   re-lays-out) every frame and makes scrolling stutter, most of all on `infinite` animations.
   For a glow or ring that pulses, put the shadow on a `::after` and animate its scale and opacity
   (see `.guide` in `css/learn.css`).
+- **One exception: opening and closing things on a click.** A side panel, drawer or section may
+  animate its size (a registered custom property such as `--tree-w`, or `block-size` with
+  `interpolate-size`), because the space next to it must change. Keep it to one click, 0.2–0.3s,
+  never while scrolling and never `infinite`. Fade the contents and keep their width so text never
+  squashes mid-animation (see "Collapse / expand" in `css/learn.css`).
 - **Never write a bare `transition: 0.15s`.** It animates every property. Use
   `transition: var(--t-ui)` for hover and press states, or list the properties.
 - No `backdrop-filter` or `filter` on elements inside a scrolling area.
@@ -51,6 +56,25 @@ Rules that follow from the loop:
   frame. A change that touches rendering is checked with it before it is called done.
 - To audit a page, list `document.getAnimations()` and check that no `infinite` animation
   touches anything other than `transform` and `opacity`.
+
+## 2b. Micro-interactions (the basics nobody asks for)
+
+Small motions that show what just happened. Users never request them but always notice when
+they are missing. Check every change against this list:
+
+- **Nothing snaps.** Panels, drawers, sections, menus and cards open and close with motion
+  (0.2–0.3s for panels, 0.15s for hover and press), using `--ease`. Snapping is a bug.
+- **Things leave the way they came.** A panel that slides in from the left slides out to the left.
+- **Every press answers.** Buttons have hover, pressed (`:active` scale) and focus states; a
+  disabled button looks disabled.
+- **Nothing jumps.** Content that appears does not push the page around (reserve space, stable
+  scrollbars); a list keeps its scroll position when it updates.
+- **Space is used.** When panels close, the content grows into the room (text keeps a readable
+  line length; pictures and labs take the width).
+- **State is remembered.** Collapsed panels, open tabs and chosen language survive a reload.
+- **Respect "reduce motion".** The global rule in `css/styles.css` and the frame loop handle it;
+  never bypass them.
+- **Check it by eye.** Open and close it, at desktop and phone width, and watch it.
 
 ## 3. Components
 

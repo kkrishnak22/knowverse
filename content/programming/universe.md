@@ -7,7 +7,7 @@ status: published
 updated: 2026-11-17
 ---
 
-Programming is telling a computer exactly what to do, one step at a time. Start with a mission: a rover on Mars that does only what you tell it.
+Learn it by doing it. Start with a mission: drive a rover on Mars that does only what you tell it. Then try the same idea with a robot and a kitchen.
 
 ```kv-rover
 ```
