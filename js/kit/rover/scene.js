@@ -677,6 +677,25 @@ export class MarsScene {
     this.wake();
   }
 
+  /** Where tile (x, y) appears on screen, in CSS pixels from the canvas's top-left corner. */
+  tileOnScreen(x, y) {
+    const p = this.world(x, y).project(this.camera);
+    const el = this.renderer.domElement;
+    return { x: ((p.x + 1) / 2) * el.clientWidth, y: ((1 - p.y) / 2) * el.clientHeight };
+  }
+
+  /** Zoom the camera in (factor < 1) or out (factor > 1), within sensible limits. */
+  zoomBy(factor) {
+    const span = this.m ? this.m.n * TILE : 6;
+    this.camGoal.r = Math.min(span * 4.2, Math.max(span * 0.7, this.camGoal.r * factor));
+    this.wake();
+  }
+
+  /** Put the camera back to the current view's framing. */
+  recenter() {
+    this.setView(this.view);
+  }
+
   /** Show or hide the "you predicted it stops here" marker. */
   setPrediction(tile) {
     this.prediction = tile;
@@ -848,6 +867,7 @@ export class MarsScene {
     const w = this.host.clientWidth;
     const h = this.host.clientHeight;
     if (!w || !h) return;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     // Keep the whole grid in frame on narrow screens.
@@ -1057,6 +1077,14 @@ export class MarsScene {
     el.addEventListener('pointerup', () => (drag = null), { signal });
     el.addEventListener('pointercancel', () => (drag = null), { signal });
     el.addEventListener('dblclick', () => this.setView(this.view), { signal });
+    // A trackpad pinch arrives as ctrl+wheel. Handle it here, or the browser zooms the whole page
+    // and the player is left with no obvious way back. Plain scrolling zooms only when the game
+    // owns the screen (opts.captureWheel), so it never hijacks scrolling the page.
+    el.addEventListener('wheel', (e) => {
+      if (!e.ctrlKey && !this.opts.captureWheel?.()) return;
+      e.preventDefault();
+      this.zoomBy(Math.exp(e.deltaY * (e.ctrlKey ? 0.012 : 0.0016)));
+    }, { signal, passive: false });
   }
 
   _disposeObject(obj) {

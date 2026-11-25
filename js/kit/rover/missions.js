@@ -3,6 +3,9 @@
 // The grid is n × n tiles. x grows to the right, y grows downwards. A rover state is
 // { x, y, d } where d is the way it faces: 0 north (up), 1 east, 2 south, 3 west.
 // Everything here is pure, so tests/rover.test.js can check every rule.
+//
+// Text: each mission keeps its Telugish next to the English (`te`), and report() / parseProgram()
+// take a language. Telugish status: draft, to be reviewed by the owner.
 
 export const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 export const COMMANDS = ['forward', 'left', 'right'];
@@ -25,6 +28,17 @@ export const MISSIONS = [
       why: 'A computer does nothing until it is given instructions.',
       wrong: ['Rovers and computers cannot decide anything by themselves.', '', 'The flag is only a target. The rover cannot see it.'],
     },
+    te: {
+      title: 'Nee modati instructions ivvu',
+      part: 'instructions',
+      brief: 'Mars meeda unna rover tanantata kadaladu. Nee program lo commands add chesi, Run nokku. Green flag daaka cheru. Veelaithe daarilo blue rock sample kuda teesko.',
+      check: {
+        q: 'Rover ni kadilinchindi edi?',
+        options: ['Adi ekkadiki vellaalo adhe decide chesukundi', 'Nuvvu ichina instructions', 'Adi flag ni follow ayyindi'],
+        why: 'Instructions ivvakapothe computer emi cheyyadu.',
+        wrong: ['Rovers, computers tamantata emi decide cheyyalevu.', '', 'Flag kevalam target matrame. Rover daanni choodaledu.'],
+      },
+    },
   },
   {
     title: 'Order matters',
@@ -39,6 +53,17 @@ export const MISSIONS = [
       answer: 0,
       why: 'Programs run step by step. The same steps in a different order give a different result.',
       wrong: ['', 'Computers are not random. They follow the exact order you give.', 'The rocks never moved. Only the order of your commands changed.'],
+    },
+    te: {
+      title: 'Order mukhyam',
+      part: 'step by step',
+      brief: 'Ivi correct commands, kaani kalisipoyayi. Rover okko command ni, nuvvu ichina order lone, okkokkati ga run chestundi. Vaatini correct order lo pettu. First run lone correct ga cheyyadaniki try cheyyi.',
+      check: {
+        q: 'Commands order enduku mukhyam ayyindi?',
+        options: ['Rover commands ni okkokkati ga, order lo run chestundi', 'Rover random order pick chestundi', 'Rocks kadilayi'],
+        why: 'Programs step by step run avutayi. Ade steps vere order lo isthe vere result vastundi.',
+        wrong: ['', 'Computers random kaadu. Nuvvu ichina exact order ne follow avutayi.', 'Rocks eppudu kadalaledu. Nee commands order matrame maarindi.'],
+      },
     },
   },
   {
@@ -55,6 +80,17 @@ export const MISSIONS = [
       why: 'We write programs in a programming language, like Python, that the computer understands.',
       wrong: ['It worked once you used its commands.', 'Length was not the problem. The words were.', ''],
     },
+    te: {
+      title: 'Daani language lo maatlaadu',
+      part: 'computer ki ardham ayye language lo',
+      brief: 'Mundu plain English lo message pampi Run nokku, em jarugutundo choodu. Tarvata rover ki telisina words tho matrame malli raayi: forward(), left(), right(), line ki okkati. forward(3) ante 3 squares munduku.',
+      check: {
+        q: '"go to the flag" enduku reject ayyindi?',
+        options: ['Rover paadaipoyindi', 'Message chaala chinnadi', 'Computers ki tama language lo unna exact commands matrame ardham avutayi'],
+        why: 'Manam programs ni Python laanti, computer ki ardham ayye programming language lo raastaam.',
+        wrong: ['Daani commands vaadagaane adi pani chesindi.', 'Length problem kaadu. Words problem.', ''],
+      },
+    },
   },
   {
     title: 'No joystick on Mars',
@@ -69,11 +105,66 @@ export const MISSIONS = [
       why: 'A program runs on its own. You do the thinking first, and the computer carries it out without you.',
       wrong: ['There is no live control on Mars. The signal takes 20 minutes.', '', 'Something was in control: the instructions you wrote.'],
     },
+    te: {
+      title: 'Mars meeda joystick ledu',
+      part: 'tanantata oka problem solve cheyagaligelaa',
+      brief: 'Mars daadapu 20 light-minutes dooram lo undi. Okkasari transmit chesaka, rover ni steer cheyyalevu, pause cheyyalevu, aapalevu. Run avvakamunde motham program correct ga undaali. Rocks chuttu full route plan cheyyi.',
+      check: {
+        q: 'Transmit nokkina tarvata rover ni control chesindi evaru?',
+        options: ['Nuvve, live ga, joystick tho', 'Nuvvu raasina program', 'Evaru kaadu'],
+        why: 'Program tanantata run avutundi. Aalochana mundu nuvvu chestav, computer nee sahayam lekunda daanni chestundi.',
+        wrong: ['Mars meeda live control ledu. Signal ki 20 minutes padutundi.', '', 'Edo okati control chesindi: nuvvu raasina instructions.'],
+      },
+    },
   },
 ];
 
 /** The sentence the four missions build, one part per mission. */
 export const DEFINITION = ['Programming is writing ', 0, ', ', 1, ', ', 2, ', so it can ', 3, '.'];
+// Telugu puts the verb last; the parts still come in mission order, so the final round works the same.
+export const DEFINITION_TE = ['Programming ante ', 0, ' ni, ', 1, ' ga, ', 2, ', ', 3, ' raayadam.'];
+
+/** The definition sentence in a language. */
+export const definition = (lang = 'en') => (lang === 'te' ? DEFINITION_TE : DEFINITION);
+
+/** A mission with its text in the given language (the rules are untouched). */
+export function localizeMission(m, lang = 'en') {
+  if (lang !== 'te' || !m.te) return m;
+  return { ...m, ...m.te, check: { ...m.check, ...m.te.check } };
+}
+
+// Messages from the rules: the report and the code checker's errors.
+const MSG = {
+  en: {
+    noNumber: (c) => `${c}() does not take a number. Write it once for each turn.`,
+    range: 'Use a number from 1 to 20.',
+    only: 'The rover only understands forward(), left() and right().',
+    exact: 'Close. Computers are exact: capital letters and spaces count.',
+    brackets: (w) => `Almost. Commands need brackets: ${w}()`,
+    syntax: (n, raw) => `SyntaxError on line ${n}: "${raw}"`,
+    reached: 'Reached the flag',
+    sample: 'Collected the rock sample',
+    firstRun: 'Right on the first run',
+    runs: (n) => `Took ${n} runs (aim: the first run)`,
+    lines: (n, best) => `Wrote ${n} line${n === 1 ? '' : 's'} of code (shortest: ${best})`,
+    cmds: (n, best) => `Used ${n} commands (shortest: ${best})`,
+  },
+  te: {
+    noNumber: (c) => `${c}() ki number ivvakoodadu. Prathi turn ki okkasari raayi.`,
+    range: '1 nunchi 20 varaku number vaadu.',
+    only: 'Rover ki forward(), left(), right() matrame ardham avutayi.',
+    exact: 'Daadapu correct. Computers exact ga untayi: capital letters, spaces kuda lekka.',
+    brackets: (w) => `Daadapu. Commands ki brackets kaavaali: ${w}()`,
+    syntax: (n, raw) => `Line ${n} lo SyntaxError: "${raw}"`,
+    reached: 'Flag daaka cherindi',
+    sample: 'Rock sample teeskundi',
+    firstRun: 'First run lone correct',
+    runs: (n) => `${n} runs pattindi (target: first run)`,
+    lines: (n, best) => `${n} line${n === 1 ? '' : 's'} code raasav (shortest: ${best})`,
+    cmds: (n, best) => `${n} commands vaadav (shortest: ${best})`,
+  },
+};
+const msg = (lang) => MSG[lang] || MSG.en;
 
 const same = (a, b) => a[0] === b[0] && a[1] === b[1];
 
@@ -118,7 +209,8 @@ export function simulate(m, cmds) {
  * Parse the rover's language: one command per line, forward(n) allowed, # comments.
  * Returns { ok: true, cmds, lines } or { ok: false, error: { line, raw, message, hint, plainEnglish } }.
  */
-export function parseProgram(src) {
+export function parseProgram(src, lang = 'en') {
+  const t = msg(lang);
   const cmds = [];
   let lines = 0;
   const all = String(src).split('\n');
@@ -128,23 +220,23 @@ export function parseProgram(src) {
     lines++;
     const m = raw.match(/^(forward|left|right)\((\d*)\)$/);
     if (m) {
-      if (m[2] && m[1] !== 'forward') return fail(i, raw, `${m[1]}() does not take a number. Write it once for each turn.`);
+      if (m[2] && m[1] !== 'forward') return fail(t, i, raw, t.noNumber(m[1]));
       const k = m[2] ? Number(m[2]) : 1;
-      if (k < 1 || k > 20) return fail(i, raw, 'Use a number from 1 to 20.');
+      if (k < 1 || k > 20) return fail(t, i, raw, t.range);
       for (let j = 0; j < k; j++) cmds.push({ cmd: m[1], line: i });
       continue;
     }
     const low = raw.toLowerCase().replace(/\s+/g, '');
-    let hint = 'The rover only understands forward(), left() and right().';
-    if (/^(forward|left|right)\(\d*\)$/.test(low)) hint = 'Close. Computers are exact: capital letters and spaces count.';
-    else if (/^(forward|left|right)$/.test(low)) hint = `Almost. Commands need brackets: ${low}()`;
-    return fail(i, raw, hint, /\s/.test(raw) && raw.split(/\s+/).length > 1);
+    let hint = t.only;
+    if (/^(forward|left|right)\(\d*\)$/.test(low)) hint = t.exact;
+    else if (/^(forward|left|right)$/.test(low)) hint = t.brackets(low);
+    return fail(t, i, raw, hint, /\s/.test(raw) && raw.split(/\s+/).length > 1);
   }
   return { ok: true, cmds, lines };
 }
 
-function fail(line, raw, hint, plainEnglish = false) {
-  return { ok: false, error: { line, raw, message: `SyntaxError on line ${line + 1}: "${raw}"`, hint, plainEnglish } };
+function fail(t, line, raw, hint, plainEnglish = false) {
+  return { ok: false, error: { line, raw, message: t.syntax(line + 1, raw), hint, plainEnglish } };
 }
 
 /** The shortest program that collects the sample and reaches the flag (empty if impossible). */
@@ -201,14 +293,15 @@ export function toPython(cmds, title = 'reach the flag on Mars') {
  * The mission report: what went well, as plain checks (no points or stars).
  * @param {{ cmds: string[], runs: number, lines: number }} run
  */
-export function report(m, result, run) {
+export function report(m, result, run, lang = 'en') {
+  const t = msg(lang);
   const best = shortestRoute(m);
   const items = [
-    { ok: result.reached, text: 'Reached the flag' },
-    { ok: result.gotSample, text: 'Collected the rock sample' },
+    { ok: result.reached, text: t.reached },
+    { ok: result.gotSample, text: t.sample },
   ];
-  if (m.mode === 'order') items.push({ ok: run.runs === 1, text: run.runs === 1 ? 'Right on the first run' : `Took ${run.runs} runs (aim: the first run)` });
-  else if (m.mode === 'code') items.push({ ok: run.lines <= lineCount(best), text: `Wrote ${run.lines} line${run.lines === 1 ? '' : 's'} of code (shortest: ${lineCount(best)})` });
-  else items.push({ ok: run.cmds.length <= best.length, text: `Used ${run.cmds.length} commands (shortest: ${best.length})` });
+  if (m.mode === 'order') items.push({ ok: run.runs === 1, text: run.runs === 1 ? t.firstRun : t.runs(run.runs) });
+  else if (m.mode === 'code') items.push({ ok: run.lines <= lineCount(best), text: t.lines(run.lines, lineCount(best)) });
+  else items.push({ ok: run.cmds.length <= best.length, text: t.cmds(run.cmds.length, best.length) });
   return items;
 }

@@ -1,9 +1,12 @@
 // Quick look: click any linked word ([[wikilink]]) to open a small side panel that says what it
-// means, with a button to open the full topic. Words whose topic doesn't exist yet say so.
+// means, with a button to open the full topic. A word with no topic but a glossary entry
+// (js/glossary.js) shows that meaning; anything else says it is not available yet.
 // Installed once (app.js); works in every view because it listens on the document.
 
 import { vault } from './store.js';
 import { h, icon } from './ui.js';
+import { lookupTerm, wordText } from './glossary.js';
+import { getLang } from './i18n.js';
 
 const TYPE_LABEL = { hub: 'Universe', category: 'Course / category', topic: 'Topic', subtopic: 'Topic' };
 let panel = null;
@@ -33,6 +36,8 @@ export function openPeek({ noteId, term }) {
   const kids = note ? (vault.children.get(note.id) || []).length : 0;
   const href = note ? (note.lesson && !note.placeholder ? `#/learn/${note.id}` : `#/note/${note.id}`) : null;
   const text = note && summary(note);
+  const entry = !note && lookupTerm(term); // a glossary word with no topic of its own
+  const word = entry && wordText(entry, getLang());
 
   panel = h('aside', { class: 'peek', role: 'dialog', 'aria-label': `About ${note?.title || term}` },
     h('div', { class: 'peek-head' },
@@ -45,10 +50,15 @@ export function openPeek({ noteId, term }) {
           h('p', { class: 'peek-text' }, note.placeholder ? 'This topic is still being written.' : text || 'No short description yet.'),
           h('a', { class: 'btn primary', href, onclick: closePeek }, note.lesson && !note.placeholder ? icon('learn') : icon('book'), note.lesson && !note.placeholder ? 'Open the lesson' : 'Open the full topic', icon('arrowRight')),
         ]
-      : [
-          h('span', { class: 'peek-type off' }, icon('lock'), 'Currently unavailable'),
-          h('p', { class: 'peek-text' }, `There is no topic for “${term}” yet. It will be linked here when it is added.`),
-        ],
+      : word
+        ? [
+            h('span', { class: 'peek-type' }, icon('book'), 'Word'),
+            h('p', { class: 'peek-text' }, word.short, word.more ? ` ${word.more}` : ''),
+          ]
+        : [
+            h('span', { class: 'peek-type off' }, icon('lock'), 'Currently unavailable'),
+            h('p', { class: 'peek-text' }, `There is no topic for “${term}” yet. It will be linked here when it is added.`),
+          ],
   );
   document.body.append(panel);
   requestAnimationFrame(() => panel?.classList.add('in'));

@@ -15,6 +15,8 @@ A static knowledge-multiverse site: no build step, plain ES modules, served as-i
 ## Conventions
 
 - Vanilla JS modules; DOM built with `h()` / `fill()` from `js/ui.js`. Icons live in `js/ui.js` (`icons`).
+- Words a beginner may not know: add them to `js/glossary.js` (one list for the whole site) and pass text through `termify()` from `js/words.js`; never hand-write tooltips for vocabulary.
+- Language: English or Telugish (Telugu in English letters, English tech words kept; code stays English). A translated screen keeps its text in an `{ en, te }` table read through `translator()` from `js/i18n.js`, and re-renders on `kv-lang-changed`. Mission Control is translated (`js/kit/rover/strings.js`); `tests/i18n.test.js` checks no Telugish line is missing. Telugish is drafted by Claude and reviewed by the owner.
 - Screens are in `js/views/` and export `mount(el, param) → cleanup` and optionally `update(param)`. Routes are in `js/app.js` (`ROUTES`).
 - Notes are Markdown with flat YAML frontmatter in `content/<universe>/…`. Hierarchy: hub → category → topic → subtopic, via `parent:`. After adding or removing notes run `npm run index`.
 - Third-party code is bundled into `vendor/` with esbuild (`npm run vendor`, `npm run vendor:three`). Pyodide is the exception: it loads from jsDelivr at runtime (too large to vendor).

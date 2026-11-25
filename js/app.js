@@ -11,6 +11,8 @@ import * as architectView from './views/architectView.js';
 import * as learnView from './views/learnView.js';
 import { installPeek } from './peek.js';
 import { installTooltips } from './tooltip.js';
+import { installWordCards } from './words.js';
+import { LANGS, getLang, setLang } from './i18n.js';
 
 const ROUTES = {
   '': { view: multiverseView, name: 'Multiverse', nav: 'home' },
@@ -253,6 +255,15 @@ export function openSettings(focus) {
   if (focus) $(`#settings-${focus}`, modal.el)?.scrollIntoView({ block: 'start' });
 }
 
+/** EN / Telugish switch in the top bar. Translated screens (Mission Control so far) follow it. */
+function renderLangSwitch() {
+  fill($('#lang-switch'), LANGS.map((l) => h('button', {
+    type: 'button', class: l.id === getLang() ? 'on' : '', 'aria-pressed': String(l.id === getLang()),
+    title: l.id === 'te' ? 'Telugish: Telugu written in English letters. Mission Control is translated; more pages coming.' : 'English',
+    onclick: () => setLang(l.id),
+  }, l.label)));
+}
+
 // ---------- Boot ----------
 
 async function boot() {
@@ -260,6 +271,8 @@ async function boot() {
   if (new URLSearchParams(location.search).has('perf')) import('./engine/perf.js').then((m) => m.showPerfMeter());
   installTooltips();
   buildChrome();
+  renderLangSwitch();
+  document.addEventListener('kv-lang-changed', renderLangSwitch);
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
@@ -272,6 +285,7 @@ async function boot() {
   document.querySelector('.topbar-name').textContent = vault.name;
   if (vault.error && !vault.notes.length) toast(`Could not load notes: ${vault.error}`, 'error', 7000);
   installPeek();
+  installWordCards();
   window.addEventListener('hashchange', route);
   route();
 }

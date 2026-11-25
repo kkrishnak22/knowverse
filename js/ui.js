@@ -63,6 +63,7 @@ export const icons = {
   edit: svg(P('M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z') + P('M14.5 7.5l3 3')),
   trash: svg(P('M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3')),
   undo: svg(P('M9 14L4 9l5-5') + P('M4 9h10a6 6 0 0 1 0 12h-3')),
+  reset: svg(P('M3 12a9 9 0 1 0 3-6.7') + P('M3 4v5h5')),
   fit: svg(P('M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5')),
   link: svg(P('M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1') + P('M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1')),
   file: svg(P('M6 3h8l5 5v13H6z') + P('M14 3v5h5')),

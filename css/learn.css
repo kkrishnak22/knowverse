@@ -472,3 +472,26 @@ details[open] > summary .module-twisty { transform: rotate(90deg); }
 .tooltip.side { margin-top: 0; margin-left: -4px; transition: opacity 0.14s ease-out, margin 0.14s ease-out; }
 .tooltip.side.in { margin-left: 0; }
 .tooltip.side::after { left: -5px; bottom: auto; top: 50%; margin: -4px 0 0; transform: rotate(135deg); }
+
+/* ---------- Underlined words (js/words.js): dotted underline, hover meaning, card on click ---------- */
+.kv-term { display: inline; margin: 0; padding: 0; border: 0; border-radius: 3px; background: none; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; text-align: inherit; cursor: help; text-decoration: underline dotted; text-decoration-thickness: 1.5px; text-underline-offset: 0.22em; text-decoration-color: color-mix(in srgb, currentColor 55%, transparent); transition: text-decoration-color 0.15s, background-color 0.15s; }
+.kv-term:hover { text-decoration-color: currentColor; background-color: rgba(196, 160, 255, 0.12); }
+.kv-term:focus-visible { outline: 2px solid #c4a0ff; outline-offset: 2px; }
+.wordcard { position: fixed; left: 0; top: 0; z-index: 410; width: min(320px, calc(100vw - 16px)); display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 16px; border-radius: 14px; border: 1px solid rgba(196, 160, 255, 0.35); background: #141a2a; color: var(--text); box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.85); opacity: 0; transition: opacity 0.16s ease-out; }
+.wordcard.in { opacity: 1; }
+.wordcard-head { display: flex; align-items: center; justify-content: space-between; }
+.wordcard-kicker { display: inline-flex; align-items: center; gap: 6px; font: 700 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: #c4a0ff; }
+.wordcard-kicker svg { width: 13px; height: 13px; }
+.wordcard-x { width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: var(--text-3); cursor: pointer; }
+.wordcard-x:hover { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+.wordcard-x svg { width: 14px; height: 14px; }
+.wordcard h3 { margin: 0; font-size: 17px; line-height: 1.3; color: #fff; }
+.wordcard p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-2); }
+.wordcard p.wordcard-more { font-size: 13px; color: var(--text-3); }
+.wordcard-ex { display: block; padding: 7px 10px; border-radius: 8px; border: 1px solid #232a3c; background: #0a0d16; font: 12.5px var(--mono); color: #d7f7e6; white-space: pre-wrap; }
+.wordcard-see { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid rgba(255, 210, 122, 0.45); background: rgba(255, 210, 122, 0.08); color: #ffd27a; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: var(--t-ui); }
+.wordcard-see:hover { background: rgba(255, 210, 122, 0.16); }
+.wordcard-see svg { width: 14px; height: 14px; }
+/* "See it": a brief glowing outline on the thing the word names. */
+.kv-spot { outline: 2px solid #ffd27a !important; outline-offset: -2px; animation: kv-spot 1.9s ease-out forwards; }
+@keyframes kv-spot { 0%, 65% { outline-color: #ffd27a; } 100% { outline-color: transparent; } }

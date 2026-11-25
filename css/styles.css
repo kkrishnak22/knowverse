@@ -103,6 +103,11 @@ kbd {
 .search-trigger:hover { border-color: var(--line-2); color: var(--text-2); }
 .search-trigger span:nth-child(2) { flex: 1; text-align: left; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar-status { display: flex; align-items: center; gap: 12px; white-space: nowrap; }
+/* EN / Telugish switch (js/i18n.js). */
+.lang-switch { flex: none; display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); }
+.lang-switch button { height: 26px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; color: var(--text-3); font-size: 12px; font-weight: 600; cursor: pointer; transition: color 0.15s, background-color 0.15s; }
+.lang-switch button:hover { color: var(--text); }
+.lang-switch button.on { background: var(--bg-3); color: var(--text); box-shadow: inset 0 0 0 1px var(--line-2); }
 .stat { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .pill {
   display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; font-size: 12px;
@@ -569,7 +574,7 @@ select.input option { background: var(--bg-2); }
    the graphics card on normal-density screens (anything under 150% scaling) and repaints the
    content on every scroll frame instead, which is what makes a rich page stutter.
    Scrollers that sit on glass or a gradient cannot be solid, so they opt in with will-change. */
-.article-pane, .learn-view { background: var(--bg); }
+.article-pane, .learn-view { background: var(--bg); scrollbar-gutter: stable; }
 .tree, .draft-list, .doc-body, .modal-body, .palette-list { background: var(--bg-1); }
 .messages, .preview-scroll, .mv-drawer-body { will-change: scroll-position; }
 

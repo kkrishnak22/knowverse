@@ -58,7 +58,9 @@ function show(el) {
   if (!el.isConnected || !el.dataset.tip) return;
   target = el;
   tipEl ??= Object.assign(document.createElement('div'), { className: 'tooltip', role: 'tooltip' });
-  if (!tipEl.isConnected) document.body.append(tipEl);
+  // In full screen only the full-screen element is drawn, so the tooltip goes inside it.
+  const host = document.fullscreenElement || document.body;
+  if (tipEl.parentNode !== host) host.append(tipEl);
   tipEl.textContent = el.dataset.tip;
   tipEl.classList.remove('in');
   place();

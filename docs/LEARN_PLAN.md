@@ -75,6 +75,8 @@ Build once, reuse in every lesson. Any view that renders Markdown can host kit b
 | Tooltips for the whole app (any `title` becomes a designed tooltip) | `js/tooltip.js` | — |
 | Questions and answers (no code) | `js/kit/predict.js` | ` ```kv-quiz ` |
 | Quick look panel for linked words (`[[word]]`), with "currently unavailable" for missing topics | `js/peek.js` | — |
+| Underlined words: dotted underline, hover meaning, word card beside the word, "See it", Words list; one shared word list (draft, owner reviews) | `js/glossary.js`, `js/words.js` | tests/glossary.test.js |
+| Language switch: English / Telugish (top bar), one { en, te } table per screen, game re-renders in place | `js/i18n.js`, `js/kit/rover/strings.js` | tests/i18n.test.js |
 | Registry | `js/kit/blocks.js` | — |
 
 Block options go on the first lines: `#! title: …`, `#! inputs: Ravi | 19`.

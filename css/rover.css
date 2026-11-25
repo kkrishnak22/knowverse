@@ -7,10 +7,19 @@
 .kvx-brand { font: 600 11.5px var(--mono); letter-spacing: 0.14em; color: #ff8a4c; }
 .kvx-brand b { color: var(--text); font-weight: 600; letter-spacing: 0.06em; }
 .kvx-head-right { display: flex; align-items: center; gap: 8px; }
-.kvx-dots { display: flex; gap: 5px; margin-right: 4px; }
-.kvx-dots i { width: 22px; height: 5px; border-radius: 3px; background: #2a2f3e; transition: var(--t-ui); }
-.kvx-dots i.on { background: #ff8a4c; }
-.kvx-dots i.done { background: #3ddc97; }
+/* Mission tabs: every mission visible, one click away. */
+.kvx-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; border-radius: 11px; border: 1px solid #242a3a; background: #0a0c13; }
+.kvx-tab { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px 0 5px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text-3); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: var(--t-ui); }
+.kvx-tab b { display: grid; place-items: center; width: 21px; height: 21px; border-radius: 6px; background: #1a1f2d; color: var(--text-2); font: 700 11px var(--mono); }
+.kvx-tab b svg { width: 12px; height: 12px; }
+.kvx-tab:hover:not(:disabled) { color: var(--text); background: #141824; }
+.kvx-tab:disabled { opacity: 0.45; cursor: not-allowed; }
+.kvx-tab.on { color: #ffd9c2; background: rgba(255, 138, 76, 0.14); border-color: rgba(255, 138, 76, 0.5); }
+.kvx-tab.on b { background: #ff8a4c; color: #1d0b03; }
+.kvx-tab.solved b { background: rgba(255, 201, 77, 0.2); color: #ffd27a; }
+.kvx-tab.done b { background: rgba(61, 220, 151, 0.2); color: #3ddc97; }
+.kvx-tab.on.done b { background: #3ddc97; color: #04150d; }
+.kvx-tab.final b { color: #ffd27a; }
 .kvx-tool { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid #2c3242; background: #141824; color: var(--text-2); font-size: 12px; transition: var(--t-ui); cursor: pointer; }
 .kvx-tool svg { width: 14px; height: 14px; }
 .kvx-tool:hover { border-color: #3d4560; color: var(--text); }
@@ -23,8 +32,11 @@
 .kvx-slot.fresh { animation: kvx-pop 0.6s var(--ease); }
 @keyframes kvx-pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.12); } 100% { transform: scale(1); } }
 
-.kvx-main { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(250px, 1fr); }
-.kvx-stage { position: relative; min-height: 460px; background: #3a1d12; overflow: hidden; }
+/* In the page: 3D view left, mission and telemetry stacked right. Focus mode: mission | 3D view | telemetry. */
+.kvx-main { position: relative; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(250px, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "stage side" "stage tele"; }
+.kvx-side { grid-area: side; }
+.kvx-tele { grid-area: tele; display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; padding: 0 14px 14px; border-left: 1px solid #242733; background: #0d0f17; }
+.kvx-stage { grid-area: stage; position: relative; min-height: 460px; background: #3a1d12; overflow: hidden; }
 .kvx-viewport { position: absolute; inset: 0; }
 .kvx-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .kvx-poster { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(120% 80% at 50% 0%, #c98a5c 0%, #7a3a20 45%, #2c140b 100%); color: #f6dcc5; font: 600 12px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; transition: opacity 0.6s var(--ease); }
@@ -33,7 +45,7 @@
 @keyframes kvx-breathe { 50% { transform: scale(1.25); opacity: 0.6; } }
 .kvx-poster.gone { opacity: 0; pointer-events: none; }
 .kvx-poster.gone .kvx-poster-glow { animation: none; }
-.kvx-legend { position: absolute; left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 6px 10px; border-radius: 10px; background: rgba(10, 8, 8, 0.62); font-size: 11.5px; color: #e9d6c6; pointer-events: none; }
+.kvx-legend { position: absolute; left: 12px; top: 12px; display: flex; flex-wrap: wrap; gap: 6px 12px; padding: 6px 10px; border-radius: 10px; background: rgba(10, 8, 8, 0.62); font-size: 11.5px; color: #e9d6c6; pointer-events: none; }
 .kvx-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .kvx-key { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
 .kvx-key.flag { background: #3ddc97; }
@@ -55,7 +67,9 @@
 .kvx-planet.mars { color: #ff9a5c; border: 1px solid rgba(255, 154, 92, 0.5); }
 .kvx-beam { position: relative; flex: 1; height: 2px; container-type: inline-size; background: linear-gradient(90deg, rgba(127, 216, 255, 0.4), rgba(255, 154, 92, 0.4)); }
 .kvx-beam i { position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px #fff; transform: translateX(calc(var(--p, 0) * 100cqw)); }
-.kvx-pick { position: absolute; left: 50%; bottom: 52px; display: flex; align-items: center; gap: 10px; width: max-content; max-width: 92%; padding: 9px 10px 9px 14px; border-radius: 12px; border: 1px solid rgba(255, 201, 77, 0.6); background: rgba(16, 12, 6, 0.9); color: #ffe3a3; font-size: 13px; font-weight: 600; opacity: 0; transform: translate(-50%, 8px); transition: opacity 0.25s, transform 0.25s var(--ease); pointer-events: none; }
+.kvx-pick { position: absolute; z-index: 4; left: 50%; top: 14px; display: flex; align-items: center; gap: 10px; width: max-content; max-width: 92%; padding: 9px 10px 9px 14px; border-radius: 12px; border: 1px solid rgba(255, 201, 77, 0.6); background: rgba(16, 12, 6, 0.9); color: #ffe3a3; font-size: 13px; font-weight: 600; opacity: 0; transform: translate(-50%, -8px); transition: opacity 0.25s, transform 0.25s var(--ease); pointer-events: none; }
+.kvx-stage:has(.kvx-pick.show) .kvx-legend { opacity: 0; }
+.kvx-legend { transition: opacity 0.2s; }
 .kvx-pick.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .kvx-pick span { display: inline-flex; align-items: center; gap: 8px; }
 .kvx-pick svg { width: 15px; height: 15px; }
@@ -64,7 +78,11 @@
 .kvx-kicker { font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: #7fd8ff; }
 .kvx-title { margin: 0 !important; font-size: 18px !important; line-height: 1.3; color: var(--text); border: 0 !important; padding: 0 !important; }
 .kvx-brief { margin: 0 !important; font-size: 13.5px; line-height: 1.55; color: var(--text-2); }
-.kvx-hint { margin-top: 4px; font: 600 10.5px var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+/* Section labels are coloured tabs so they read as headings, not as body text. */
+.kvx-hint { --c: 127, 216, 255; align-self: flex-start; display: inline-flex; align-items: center; gap: 7px; margin-top: 6px; padding: 4px 10px 4px 8px; border-radius: 7px; border: 1px solid rgba(var(--c), 0.38); background: rgba(var(--c), 0.1); color: rgb(var(--c)); font: 700 10.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.kvx-hint::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: rgb(var(--c)); }
+.kvx-hint.prog { --c: 255, 154, 92; }
+.kvx-hint.tele { --c: 61, 220, 151; }
 .kvx-controls { display: flex; flex-direction: column; gap: 6px; }
 .kvx-controls.locked .kvx-chip, .kvx-controls.locked .kvx-ins { opacity: 0.5; pointer-events: none; }
 .kvx-palette { display: flex; flex-wrap: wrap; gap: 6px; border-radius: 12px; }
@@ -98,7 +116,6 @@
 .kvx-speed { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-3); }
 .kvx-speed input { flex: 1; accent-color: #ff8a4c; }
 .kvx-speed-label { width: 48px; text-align: right; }
-.kvx-log-head { margin-top: 2px; font: 600 10.5px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
 .kvx-log { flex: 1; min-height: 96px; max-height: 150px; overflow: auto; padding: 8px 10px; border-radius: 10px; border: 1px solid #222838; background: #07090f; font: 11.5px/1.6 var(--mono); color: #9fb1c9; }
 .kvx-log .ok { color: #3ddc97; }
 .kvx-log .bad { color: #ff6b85; }
@@ -106,10 +123,6 @@
 .kvx .shake { animation: kvx-shake 0.4s; }
 @keyframes kvx-shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 
-.kvx-overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 16px; background: rgba(6, 7, 11, 0.72); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
-.kvx-overlay.show { opacity: 1; pointer-events: auto; }
-.kvx-card { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 520px; max-height: 100%; overflow: auto; padding: 20px; border-radius: 16px; border: 1px solid #2e3650; background: #121624; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); transform: translateY(10px) scale(0.985); transition: transform 0.3s var(--ease); }
-.kvx-overlay.show .kvx-card { transform: none; }
 .kvx-note { display: flex; align-items: center; gap: 8px; margin: 0 !important; font-size: 13px; color: #ffd27a; }
 .kvx-note svg { width: 15px; height: 15px; flex: none; }
 .kvx-actions { display: flex; gap: 8px; margin-top: 4px; }
@@ -119,8 +132,7 @@
 .kvx-report svg { width: 15px; height: 15px; }
 .kvx-q { margin: 0 !important; font-size: 16px; color: var(--text); }
 .kvx-options { display: grid; gap: 7px; border-radius: 12px; }
-.kvx-options .kv-option.right { border-color: #3ddc97; background: rgba(61, 220, 151, 0.12); color: #3ddc97; }
-.kvx-options .kv-option.wrong { border-color: #ff5470; background: rgba(255, 84, 112, 0.1); color: #ff8a9e; animation: kvx-shake 0.4s; }
+
 .kvx-why { margin: 0 !important; min-height: 20px; font-size: 13.5px; color: var(--text-2); }
 .kvx-why.ok b { color: #3ddc97; }
 .kvx-why.bad { color: #ff8a9e; }
@@ -136,16 +148,181 @@
 .kvx-py { width: 100%; margin: 0 !important; padding: 12px 14px !important; border-radius: 10px; border: 1px solid #222838; background: #07090f !important; color: #d7f7e6; font: 13px/1.6 var(--mono); overflow: auto; }
 
 @container (max-width: 720px) {
-  .kvx-main { grid-template-columns: 1fr; }
+  .kvx-main { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); grid-template-rows: auto auto; grid-template-areas: "stage stage" "side tele"; }
   .kvx-stage { min-height: 0; aspect-ratio: 16 / 10; }
   .kvx-side { border-left: 0; border-top: 1px solid #242733; }
+  .kvx-tele { border-top: 1px solid #242733; }
+  .kvx-tele .kvx-log { max-height: none; }
   .kvx-legend { display: none; }
 }
-
-/* Stacked but roomy: controls on the left, telemetry on the right, so the game stays compact. */
-@container (max-width: 720px) and (min-width: 520px) {
-  .kvx-side { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); column-gap: 14px; row-gap: 8px; align-content: start; }
-  .kvx-side > * { grid-column: 1; }
-  .kvx-side > .kvx-log-head { grid-column: 2; grid-row: 1; }
-  .kvx-side > .kvx-log { grid-column: 2; grid-row: 2 / span 7; max-height: none; }
+@container (max-width: 520px) {
+  .kvx-main { grid-template-columns: 1fr; grid-template-areas: "stage" "side" "tele"; }
+  .kvx-tele { border-left: 0; border-top: 0; }
 }
+
+/* ---------- Focus mode: the game fills the window and the page underneath is locked ---------- */
+html.kvx-locked, html.kvx-locked body { overflow: hidden; }
+.kvx.focus { position: fixed; inset: 0; z-index: 120; width: 100vw; height: 100vh; height: 100dvh; border: 0; border-radius: 0; animation: kvx-open 0.35s var(--ease); }
+@keyframes kvx-open { from { opacity: 0; transform: scale(0.985); } }
+.kvx.focus .kvx-main { flex: 1; min-height: 0; grid-template-columns: clamp(300px, 24vw, 390px) minmax(0, 1fr) clamp(250px, 19vw, 330px); grid-template-rows: minmax(0, 1fr); grid-template-areas: "side stage tele"; }
+.kvx.focus .kvx-stage { min-height: 0; aspect-ratio: auto; }
+.kvx.focus .kvx-side { border-left: 0; border-right: 1px solid #242733; overflow-y: auto; scrollbar-gutter: stable; }
+.kvx.focus .kvx-tele { border-top: 0; }
+.kvx.focus .kvx-log { max-height: none; min-height: 0; }
+.kvx.focus .kvx-def { padding-top: 8px; padding-bottom: 10px; }
+/* Narrower windows: mission above telemetry on the left, the 3D view keeps the rest. */
+@container (max-width: 1000px) {
+  .kvx.focus .kvx-main { grid-template-columns: clamp(290px, 34vw, 360px) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(130px, 30%); grid-template-areas: "side stage" "tele stage"; }
+  .kvx.focus .kvx-tele { border-left: 0; border-right: 1px solid #242733; }
+}
+@container (max-width: 720px) {
+  .kvx.focus .kvx-main { grid-template-columns: 1fr; grid-template-rows: minmax(0, 50%) minmax(0, 1fr) 118px; grid-template-areas: "stage" "side" "tele"; }
+  .kvx.focus .kvx-side { display: flex; overflow-y: auto; border-right: 0; }
+  .kvx.focus .kvx-tele { border-right: 0; border-top: 1px solid #242733; }
+  .kvx.focus .kvx-tele-head { margin-top: 8px; }
+  /* On a phone the game gets the room: icon-only tools (their titles name them) and a compact definition. */
+  .kvx.focus .kvx-head { padding: 8px 12px; row-gap: 8px; }
+  .kvx.focus .kvx-brand { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .kvx.focus .kvx-head-right { flex: none; gap: 6px; }
+  .kvx.focus .kvx-tool { gap: 0; padding: 0 8px; font-size: 0; }
+  .kvx.focus .kvx-def { padding: 6px 12px 8px; }
+  .kvx.focus .kvx-def small { display: none; }
+  .kvx.focus .kvx-def-line { margin: 0 !important; font-size: 13px; line-height: 1.85; }
+}
+.kvx-placeholder { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; margin: 1.4em 0; padding: 20px; border: 1px dashed var(--line-2); border-radius: 22px; color: var(--text-3); font-size: 13.5px; }
+.kvx-placeholder span { display: inline-flex; align-items: center; gap: 8px; }
+.kvx-placeholder svg { width: 16px; height: 16px; }
+
+/* ---------- Camera controls on the 3D view ---------- */
+.kvx-hud { position: absolute; right: 12px; top: 12px; z-index: 3; display: flex; flex-direction: column; gap: 4px; }
+.kvx-hud button { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(10, 8, 8, 0.62); color: #f3e3d6; cursor: pointer; transition: var(--t-ui); }
+.kvx-hud button:hover { background: rgba(10, 8, 8, 0.85); border-color: rgba(255, 255, 255, 0.3); }
+.kvx-hud svg { width: 15px; height: 15px; }
+
+/* ---------- Keyboard hints ---------- */
+.kvx-chip kbd { margin-left: 2px; padding: 0 5px; border-radius: 4px; border: 1px solid #3a4560; background: rgba(255, 255, 255, 0.04); font: 600 10px var(--mono); color: var(--text-3); }
+.kvx-keys { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11.5px; color: var(--text-3); }
+.kvx-keys span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.kvx-keys kbd { padding: 0 5px; border-radius: 4px; border: 1px solid #333c52; background: #121622; font: 600 10.5px var(--mono); color: var(--text-2); }
+.kvx-log { scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: #2a3142 transparent; }
+
+/* ---------- How-to-play demo ---------- */
+.kvx-cursor { position: absolute; left: 0; top: 0; z-index: 9; width: 26px; height: 26px; margin: -3px 0 0 -5px; pointer-events: none; opacity: 0; transition: opacity 0.2s; will-change: transform; }
+.kvx-cursor.show { opacity: 1; }
+.kvx-cursor svg { display: block; }
+.kvx-cursor i { position: absolute; left: -9px; top: -9px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ffffff; opacity: 0; }
+.kvx-cursor.press i { animation: kvx-ripple 0.45s ease-out; }
+@keyframes kvx-ripple { from { opacity: 0.9; transform: scale(0.4); } to { opacity: 0; transform: scale(1.7); } }
+/* No transition: the chip's own transform transition would make the copy trail behind the cursor. */
+.kvx-ghost { position: absolute !important; left: 0; top: 0; z-index: 8; margin: 0 !important; pointer-events: none; transition: none !important; border-color: #ff8a4c !important; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5); will-change: transform; }
+.kvx-demo { position: absolute; left: 50%; bottom: 14px; z-index: 6; display: flex; align-items: center; gap: 10px; width: max-content; max-width: 92%; padding: 7px 7px 7px 14px; border-radius: 12px; border: 1px solid rgba(127, 216, 255, 0.5); background: rgba(10, 13, 21, 0.92); color: #e6f6ff; font-size: 13.5px; font-weight: 600; opacity: 0; transform: translate(-50%, 6px); transition: opacity 0.25s, transform 0.25s var(--ease); pointer-events: none; }
+.kvx-demo b { font: 700 10.5px var(--mono); letter-spacing: 0.12em; color: #7fd8ff; }
+.kvx.demoing .kvx-demo { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.kvx-shield { position: absolute; inset: 0; z-index: 4; display: none; cursor: default; }
+.kvx.demoing .kvx-shield { display: block; }
+.kvx.demoing .kvx-demo { z-index: 7; }
+
+/* The explanation that rides beside the demo cursor. Positioned with transform by demo.js. */
+.kvx-tip { position: absolute; left: 0; top: 0; z-index: 10; width: max-content; max-width: min(300px, 70%); padding: 9px 12px; border-radius: 11px; border: 1px solid rgba(127, 216, 255, 0.55); background: #0f1626; color: #eaf7ff; font-size: 13.5px; font-weight: 600; line-height: 1.4; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5); pointer-events: none; opacity: 0; transition: opacity 0.2s; will-change: transform; }
+.kvx-tip.show { opacity: 1; }
+.kvx-tip.fresh { animation: kvx-tip-in 0.3s var(--ease); }
+@keyframes kvx-tip-in { from { opacity: 0.2; } }
+
+/* ---------- On-screen game controls: arrow pad (bottom left) and actions (bottom right) ---------- */
+.kvx-pad { position: absolute; left: 16px; bottom: 16px; z-index: 3; width: 132px; height: 132px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.14); background: radial-gradient(circle, rgba(16, 12, 10, 0.5) 0%, rgba(16, 12, 10, 0.72) 70%); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
+.kvx-pad button { position: absolute; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(30, 24, 22, 0.9); color: #fff1e6; cursor: pointer; transition: var(--t-ui); touch-action: manipulation; }
+.kvx-pad button svg { width: 20px; height: 20px; }
+.kvx-pad button:hover:not(:disabled) { border-color: #ff8a4c; color: #ff9a5c; }
+.kvx-pad button:active:not(:disabled) { transform: scale(0.92); }
+.kvx-pad button:disabled { opacity: 0.35; cursor: not-allowed; }
+.kvx-pad .up { left: 44px; top: 4px; }
+.kvx-pad .left { left: 4px; top: 44px; }
+.kvx-pad .right { right: 4px; top: 44px; }
+.kvx-pad .down { left: 50px; bottom: 6px; width: 32px; height: 32px; border-radius: 50%; }
+.kvx-pad .down svg { width: 15px; height: 15px; }
+.kvx-pad-hub { position: absolute; left: 56px; top: 56px; width: 20px; height: 20px; border-radius: 50%; background: rgba(255, 138, 76, 0.35); border: 1px solid rgba(255, 138, 76, 0.6); }
+.kvx-act { position: absolute; right: 16px; bottom: 16px; z-index: 3; display: flex; align-items: flex-end; gap: 10px; }
+.kvx-fab { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(30, 24, 22, 0.88); color: #fff1e6; cursor: pointer; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35); transition: var(--t-ui); touch-action: manipulation; }
+.kvx-fab svg { width: 18px; height: 18px; }
+.kvx-fab:hover:not(:disabled) { border-color: #ff8a4c; }
+.kvx-fab:active:not(:disabled) { transform: scale(0.92); }
+.kvx-fab:disabled { opacity: 0.35; cursor: not-allowed; }
+.kvx-fab.run { width: 68px; height: 68px; border: 0; background: linear-gradient(135deg, #ff8a4c, #ff5a2d); color: #1d0b03; }
+.kvx-fab.run svg { width: 26px; height: 26px; margin-left: 3px; }
+@container (max-width: 520px) {
+  .kvx-pad { transform: scale(0.8); transform-origin: left bottom; left: 10px; bottom: 10px; }
+  .kvx-act { transform: scale(0.8); transform-origin: right bottom; right: 10px; bottom: 10px; }
+}
+
+/* Header: on narrower games the tabs take a row of their own; on phones they show numbers only. */
+@container (max-width: 1180px) {
+  .kvx-tabs { order: 3; flex-basis: 100%; justify-content: center; }
+}
+@container (max-width: 520px) {
+  .kvx-tab { padding: 0 4px; }
+  .kvx-tab span { display: none; }
+  .kvx-tabs { justify-content: space-between; }
+}
+
+/* ---------- Checkpoint panel: glass, slides up over the game, folds to a pill ---------- */
+.kvx-dock { position: absolute; left: 50%; bottom: 18px; z-index: 20; width: min(940px, calc(100% - 32px)); max-height: min(74%, 640px); display: flex; flex-direction: column; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.14); background: linear-gradient(180deg, rgba(30, 36, 56, 0.96), rgba(13, 16, 27, 0.97)); box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1); transform: translate(-50%, calc(100% + 40px)); visibility: hidden; transition: transform 0.5s var(--ease), visibility 0s 0.5s; }
+.kvx-dock.open { transform: translate(-50%, 0); visibility: visible; transition: transform 0.5s var(--ease); }
+/* Real glass only in focus mode: the game is fixed there, so nothing scrolls under the blur. */
+.kvx.focus .kvx-dock { background: linear-gradient(180deg, rgba(34, 41, 64, 0.62), rgba(12, 15, 26, 0.74)); -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%); }
+.kvx-dock-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 24px 6px; }
+.kvx-dock-kicker { display: inline-flex; align-items: center; gap: 8px; font: 700 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: #3ddc97; }
+.kvx-dock-kicker::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #3ddc97; box-shadow: 0 0 12px #3ddc97; }
+.kvx-dock-title { margin: 6px 0 0 !important; padding: 0 !important; border: 0 !important; font-size: 22px !important; line-height: 1.3; font-weight: 700; color: #fff; }
+.kvx-dock-toggle { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.06); color: var(--text-2); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: var(--t-ui); }
+.kvx-dock-toggle:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.kvx-dock-toggle svg { width: 14px; height: 14px; transform: rotate(90deg); }
+.kvx-dock-body { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding: 8px 24px 22px; scrollbar-width: thin; }
+.kvx-chips { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 0 !important; padding: 0 !important; }
+.kvx-chips li { display: inline-flex; align-items: center; gap: 7px; margin: 0 !important; padding: 6px 12px; border-radius: 99px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.05); font-size: 13px; color: var(--text-2); }
+.kvx-chips li.ok { border-color: rgba(61, 220, 151, 0.4); background: rgba(61, 220, 151, 0.1); color: #8ff0c4; }
+.kvx-chips svg { width: 14px; height: 14px; }
+.kvx-dock .kvx-options { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.kvx-answer { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05); color: var(--text); font-size: 14.5px; font-weight: 600; text-align: left; cursor: pointer; transition: var(--t-ui); }
+.kvx-answer i { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(127, 216, 255, 0.14); color: #7fd8ff; font: 700 12px var(--mono); font-style: normal; }
+.kvx-answer:hover:not(:disabled) { border-color: rgba(127, 216, 255, 0.6); background: rgba(127, 216, 255, 0.1); transform: translateY(-1px); }
+.kvx-answer:disabled { cursor: default; opacity: 0.5; }
+.kvx-answer.right { opacity: 1; border-color: #3ddc97; background: rgba(61, 220, 151, 0.14); color: #b6f7d9; }
+.kvx-answer.right i { background: #3ddc97; color: #04150d; }
+.kvx-answer.wrong { border-color: #ff5470; background: rgba(255, 84, 112, 0.1); color: #ffb0bd; animation: kvx-shake 0.4s; }
+.kvx-dock .kvx-why { font-size: 14px; }
+.kvx-dock .kvx-actions { flex-wrap: wrap; }
+.kvx-dock .kvx-run { flex: none; height: 42px; padding: 0 20px; }
+.kvx-dock-pill { position: absolute; left: 50%; bottom: 18px; z-index: 20; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px 0 12px; border-radius: 99px; border: 1px solid rgba(255, 201, 77, 0.55); background: rgba(22, 18, 10, 0.9); color: #ffd27a; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45); opacity: 0; pointer-events: none; transform: translate(-50%, 16px); transition: opacity 0.25s, transform 0.35s var(--ease); }
+.kvx-dock-pill svg { width: 14px; height: 14px; transform: rotate(-90deg); }
+.kvx-dock-pill:hover { border-color: #ffd27a; }
+.kvx.dock-min .kvx-dock-pill { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+.kvx.demoing .kvx-dock-pill { opacity: 0; pointer-events: none; }
+.kvx-how { align-self: flex-start; }
+@container (max-width: 520px) {
+  .kvx-dock { bottom: 10px; width: calc(100% - 20px); max-height: 70%; border-radius: 18px; }
+  .kvx-dock-head { padding: 16px 16px 4px; }
+  .kvx-dock-title { font-size: 18px !important; }
+  .kvx-dock-body { padding: 6px 16px 16px; }
+  .kvx-answer { min-height: 48px; }
+}
+
+/* "Do this next" in the game: a calm, steady glow that fades in once. No blinking, no growing box. */
+.kvx .guide:not(:disabled)::after { box-shadow: 0 0 0 1.5px rgba(255, 176, 120, 0.85), 0 0 22px rgba(255, 138, 76, 0.3); transform: none; animation: kvx-guide 0.6s var(--ease) both; }
+@keyframes kvx-guide { from { opacity: 0; } }
+
+/* Telemetry panel header, with the switch to the Words list. */
+.kvx-tele-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }
+.kvx-tele-head .kvx-hint { margin-top: 0; }
+.kvx-hint.words { --c: 196, 160, 255; }
+.kvx-switch { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px; border-radius: 7px; border: 1px solid #2c3242; background: #141824; color: var(--text-2); font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer; transition: var(--t-ui); }
+.kvx-switch:hover { border-color: #3d4560; color: var(--text); }
+.kvx-switch small { font: 600 10px var(--mono); color: var(--text-3); }
+.kvx-switch svg { width: 13px; height: 13px; }
+.kvx-words { list-style: none; flex: 1; min-height: 0; max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin: 0 !important; padding: 0 !important; scrollbar-width: thin; scrollbar-color: #2a3142 transparent; }
+.kvx.focus .kvx-words { max-height: none; }
+.kvx-words li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 8px; margin: 0 !important; padding: 8px 10px; border-radius: 10px; border: 1px solid #222838; background: #07090f; }
+.kvx-words li .kv-term { justify-self: start; font-size: 13px; font-weight: 700; color: var(--text); }
+.kvx-words li span { grid-column: 1; font-size: 12px; line-height: 1.45; color: var(--text-3); }
+.kvx-words li svg { grid-column: 2; grid-row: 1; width: 14px; height: 14px; color: #3ddc97; }
+.kvx-words li.seen { border-color: rgba(61, 220, 151, 0.22); }
+.kvx-poster[data-failed] .kvx-poster-glow { display: none; }
